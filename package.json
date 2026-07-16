@@ -7,8 +7,10 @@
     "dev:frontend": "vite",
     "build:frontend": "tsc -p tsconfig.json && vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
+    "build:backend": "pyinstaller --onefile --noconsole --name engine --distpath backend/dist --workpath backend/build backend/engine.py --clean",
     "dev": "concurrently \"npm run dev:frontend\" \"tsc -p tsconfig.electron.json -w\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "npm run build:frontend && npm run build:electron"
+    "build": "npm run build:frontend && npm run build:electron && npm run build:backend",
+    "package": "npm run build && electron-builder"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -21,8 +23,40 @@
     "@vitejs/plugin-react": "^5.2.0",
     "concurrently": "^8.2.2",
     "electron": "^31.1.0",
+    "electron-builder": "^26.15.3",
     "typescript": "^5.5.3",
     "vite": "^5.3.3",
     "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.docksy.app",
+    "productName": "Docksy",
+    "directories": {
+      "output": "dist-packaged"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/dist/engine.exe",
+        "to": "engine.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Docksy"
+    }
   }
 }

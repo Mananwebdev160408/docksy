@@ -118,6 +118,7 @@ export const useStore = create<AppStore>((set, get) => ({
   setActiveTab: (activeTab) => set({ activeTab }),
 
   showToast: (title, message) => {
+    if (get().settings.notifications !== '1') return;
     set({ toast: { title, message, visible: true } });
     setTimeout(() => {
       get().hideToast();

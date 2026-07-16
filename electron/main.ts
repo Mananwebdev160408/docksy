@@ -1,11 +1,62 @@
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage } from 'electron';
 import * as path from 'path';
 import { spawn, ChildProcess } from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let pythonProcess: ChildProcess | null = null;
 let isQuitting = false;
+
+const dbPath = path.join(os.homedir(), '.docksy', 'docksy.json');
+
+function getMinimizeToTraySetting(): boolean {
+  try {
+    if (fs.existsSync(dbPath)) {
+      const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+      if (db.settings && db.settings.minimize_to_tray !== undefined) {
+        return db.settings.minimize_to_tray === '1';
+      }
+    }
+  } catch (e) {
+    console.error("Error reading minimize_to_tray setting from DB:", e);
+  }
+  return true; // Default to true
+}
+
+function applySettings() {
+  try {
+    if (fs.existsSync(dbPath)) {
+      const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+      if (db.settings) {
+        if (db.settings.launch_at_startup !== undefined) {
+          const launchAtStartup = db.settings.launch_at_startup === '1';
+          app.setLoginItemSettings({
+            openAtLogin: launchAtStartup,
+            path: app.getPath('exe')
+          });
+          console.log(`[Electron Settings] Applied launch_at_startup = ${launchAtStartup}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error reading or applying settings from DB:", e);
+  }
+}
+
+// Ensure the database directory exists so we can watch it
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Watch for settings changes dynamically
+fs.watch(dbDir, (eventType, filename) => {
+  if (filename === 'docksy.json') {
+    applySettings();
+  }
+});
 
 // Self-contained transparent/colored base64 PNG for Tray Icon to prevent missing-file crashes
 const trayIconBase64 = 
@@ -16,16 +67,22 @@ const trayIconBase64 =
 
 function startPythonBackend() {
   const isDev = !app.isPackaged;
-  const scriptPath = isDev 
-    ? path.join(__dirname, '../backend/engine.py')
-    : path.join(process.resourcesPath, 'backend/engine.py');
   
-  console.log(`Spawning Python backend from: ${scriptPath}`);
-  
-  pythonProcess = spawn('python', [scriptPath], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true
-  });
+  if (isDev) {
+    const scriptPath = path.join(__dirname, '../backend/engine.py');
+    console.log(`Spawning Python backend in dev mode: python ${scriptPath}`);
+    pythonProcess = spawn('python', [scriptPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true
+    });
+  } else {
+    const exePath = path.join(process.resourcesPath, 'engine.exe');
+    console.log(`Spawning compiled Python backend from: ${exePath}`);
+    pythonProcess = spawn(exePath, [], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true
+    });
+  }
   
   pythonProcess.stdout?.on('data', (data) => {
     console.log(`[Python Stdout]: ${data.toString().trim()}`);
@@ -41,7 +98,12 @@ function startPythonBackend() {
 }
 
 function createTray() {
-  const icon = nativeImage.createFromBuffer(Buffer.from(trayIconBase64, 'base64'));
+  const iconPath = path.join(__dirname, '../src/assets/logo.png');
+
+  let icon = fs.existsSync(iconPath)
+    ? nativeImage.createFromPath(iconPath)
+    : nativeImage.createFromBuffer(Buffer.from(trayIconBase64, 'base64'));
+
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
   
   const contextMenu = Menu.buildFromTemplate([
@@ -70,12 +132,15 @@ function createTray() {
 }
 
 function createWindow() {
+  const iconPath = path.join(__dirname, '../src/assets/logo.png');
+
   mainWindow = new BrowserWindow({
     width: 1050,
     height: 750,
     minWidth: 800,
     minHeight: 600,
     show: false,
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -103,8 +168,14 @@ function createWindow() {
   // Minimize to tray logic
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
-      event.preventDefault();
-      mainWindow?.hide();
+      const minimizeToTray = getMinimizeToTraySetting();
+      if (minimizeToTray) {
+        event.preventDefault();
+        mainWindow?.hide();
+      } else {
+        isQuitting = true;
+        app.quit();
+      }
     }
   });
 
@@ -114,6 +185,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  applySettings();
   startPythonBackend();
   createTray();
   createWindow();

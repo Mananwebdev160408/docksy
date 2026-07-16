@@ -37,3 +37,11 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# PyInstaller
+backend/build/
+backend/dist/
+*.spec
+
+# Electron Builder Packaging
+dist-packaged/

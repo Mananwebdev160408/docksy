@@ -15,6 +15,14 @@ import struct
 from datetime import datetime
 import winreg
 
+# pyvda — Python wrapper for Windows Virtual Desktop COM APIs
+try:
+    from pyvda import AppView, VirtualDesktop, get_virtual_desktops as _pyvda_get_desktops
+    PYVDA_AVAILABLE = True
+except ImportError:
+    PYVDA_AVAILABLE = False
+    print("[VD] pyvda not found. Install with: pip install pyvda")
+
 # Database Location
 DB_DIR = os.path.expanduser(r"~\.docksy")
 DB_JSON_PATH = os.path.join(DB_DIR, "docksy.json")
@@ -58,11 +66,31 @@ class GUID(ctypes.Structure):
         return cls(d1, d2, d3, d4)
 
 def get_virtual_desktop_info():
+    """
+    Returns (desktop_map, desktop_order) where:
+      desktop_map   = { GUID_UPPER_STR: name }
+      desktop_order = [ GUID_UPPER_STR, ... ]  in display order (index 0 = desktop 1)
+
+    Uses pyvda when available (preferred — reads live COM state, not registry snapshots).
+    Falls back to registry parsing if pyvda is not installed.
+    """
     desktop_map = {}
     desktop_order = []
-    
+
+    if PYVDA_AVAILABLE:
+        try:
+            desktops = _pyvda_get_desktops()
+            for d in desktops:
+                guid_str = str(d.id).upper()
+                name = d.name or f"Desktop {d.number}"
+                desktop_map[guid_str] = name
+                desktop_order.append(guid_str)
+            return desktop_map, desktop_order
+        except Exception as e:
+            print(f"[VD] pyvda get_virtual_desktops failed, falling back to registry: {e}")
+
+    # --- Registry fallback (kept for cases where pyvda is unavailable) ---
     try:
-        # Read the ordered list of virtual desktop GUIDs
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops") as key:
             try:
                 value, value_type = winreg.QueryValueEx(key, "VirtualDesktopIDs")
@@ -74,14 +102,11 @@ def get_virtual_desktop_info():
                             d2 = int.from_bytes(guid_bytes[4:6], byteorder='little')
                             d3 = int.from_bytes(guid_bytes[6:8], byteorder='little')
                             d4 = guid_bytes[8:16]
-                            
                             d4_str = "".join(f"{b:02X}" for b in d4)
                             guid_str = f"{{{d1:08X}-{d2:04X}-{d3:04X}-{d4_str[:4]}-{d4_str[4:]}}}"
                             desktop_order.append(guid_str)
             except FileNotFoundError:
                 pass
-                
-        # Read custom desktop names from the subkey
         try:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops\Desktops") as key:
                 index = 0
@@ -99,69 +124,41 @@ def get_virtual_desktop_info():
                         break
         except FileNotFoundError:
             pass
-            
-        # Fallback names
         for idx, guid in enumerate(desktop_order):
             g_upper = guid.upper()
             if g_upper not in desktop_map:
                 desktop_map[g_upper] = f"Desktop {idx + 1}"
-                
     except Exception as e:
-        print(f"Error reading Virtual Desktop info: {e}")
-        
+        print(f"Error reading Virtual Desktop info from registry: {e}")
+
     return desktop_map, desktop_order
-
-class VirtualDesktopManagerScope:
-    def __enter__(self):
-        ctypes.windll.ole32.CoInitialize(None)
-        
-        clsid = GUID.from_str("{AA509086-5CA9-4C25-8F95-589D3C07B48A}")
-        iid = GUID.from_str("{A5CD92FF-29BE-454C-8D04-D82879FB3F1B}")
-        self.pManager = ctypes.c_void_p()
-        hr = ctypes.windll.ole32.CoCreateInstance(
-            ctypes.byref(clsid),
-            None,
-            1, # CLSCTX_INPROC_SERVER
-            ctypes.byref(iid),
-            ctypes.byref(self.pManager)
-        )
-        if hr == 0 and self.pManager.value:
-            self.vtable = ctypes.cast(self.pManager, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
-            
-            GetWindowDesktopId_proto = ctypes.WINFUNCTYPE(ctypes.HRESULT, ctypes.c_void_p, wintypes.HWND, ctypes.POINTER(GUID))
-            self.get_window_desktop_id = GetWindowDesktopId_proto(self.vtable[4])
-            
-            MoveWindowToDesktop_proto = ctypes.WINFUNCTYPE(ctypes.HRESULT, ctypes.c_void_p, wintypes.HWND, ctypes.POINTER(GUID))
-            self.move_window_to_desktop = MoveWindowToDesktop_proto(self.vtable[5])
-            
-            return self
-        else:
-            self.pManager = None
-            return None
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.pManager and self.pManager.value:
-            try:
-                Release_proto = ctypes.WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)
-                release_func = Release_proto(self.vtable[2])
-                release_func(self.pManager)
-            except Exception as e:
-                print(f"Error releasing IVirtualDesktopManager: {e}")
-        ctypes.windll.ole32.CoUninitialize()
 
 def move_hwnd_to_desktop_by_index(hwnd, target_desktop_index, retries=3):
     """
-    Reliably move a window (any process) to a virtual desktop by 0-based index.
-    Uses a PowerShell script with inline C# that accesses IVirtualDesktopManagerInternal
-    via ImmersiveShell IServiceProvider - the only reliable way to move foreign-process
-    windows across virtual desktops on Windows 10/11.
-    
-    The public IVirtualDesktopManager::MoveWindowToDesktop COM API silently fails with
-    E_ACCESSDENIED (0x80070005) for windows belonging to other processes. The internal
-    interface (IVirtualDesktopManagerInternal) accessed via IApplicationViewCollection
-    does NOT have this restriction.
+    Move a window (any process) to a virtual desktop by 0-based index.
+
+    Uses pyvda (preferred): AppView(hwnd).move(desktop) calls IVirtualDesktopManagerInternal
+    directly — no E_ACCESSDENIED, works cross-process, no external process needed.
+
+    Falls back to the PowerShell/inline-C# approach when pyvda is not installed.
     """
-    # C# code with all delegate types declared at class scope (not inside methods)
+    if PYVDA_AVAILABLE:
+        for attempt in range(retries):
+            try:
+                desktops = _pyvda_get_desktops()
+                if target_desktop_index < 0 or target_desktop_index >= len(desktops):
+                    print(f"[VD] pyvda: desktop index {target_desktop_index} out of range ({len(desktops)} desktops)")
+                    return False
+                target = desktops[target_desktop_index]
+                AppView(hwnd=hwnd).move(target)
+                return True
+            except Exception as e:
+                print(f"[VD] pyvda move attempt {attempt+1}/{retries} failed for hwnd={hwnd}: {e}")
+                if attempt < retries - 1:
+                    time.sleep(0.3)
+        return False
+
+    # ---- PowerShell / inline-C# fallback (only used when pyvda is not installed) ----
     ps_code = f"""
 $hwnd = [IntPtr]{hwnd}
 $targetIdx = {target_desktop_index}
@@ -832,115 +829,116 @@ def capture_windows(ignored_set):
     if h_default:
         if user32.SetThreadDesktop(h_default):
             has_switched = True
-            
-    with VirtualDesktopManagerScope() as vda:
-        def callback(hwnd, lparam):
-            if not user32.IsWindowVisible(hwnd):
-                return True
-                
-            # Get styles
-            ex_style = user32.GetWindowLongW(hwnd, -20) # GWL_EXSTYLE
-            
-            # Filter out tool windows
-            if ex_style & 0x00000080: # WS_EX_TOOLWINDOW
-                return True
-                
-            # Filter out owned windows (GW_OWNER = 3) unless they explicitly set WS_EX_APPWINDOW
-            owner = user32.GetWindow(hwnd, 3)
-            if owner and user32.IsWindowVisible(owner) and not (ex_style & 0x00040000): # WS_EX_APPWINDOW
-                return True
-                
-            length = user32.GetWindowTextLengthW(hwnd)
-            if length == 0:
-                return True
-                
-            title_buf = ctypes.create_unicode_buffer(length + 1)
-            user32.GetWindowTextW(hwnd, title_buf, length + 1)
-            title = title_buf.value
-            
-            class_buf = ctypes.create_unicode_buffer(256)
-            user32.GetClassNameW(hwnd, class_buf, 256)
-            class_name = class_buf.value
-            
-            if class_name in ["Shell_TrayWnd", "Progman", "Windows.UI.Core.CoreWindow", "WorkerW", "MiniMapViewClass", "XamlExplorerHostIslandWindow"]:
-                return True
-                
-            pid = wintypes.DWORD()
-            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-            
-            uwp_pid = pid.value
-            if class_name == "ApplicationFrameWindow":
-                # 1. Try matching by title against pre-enumerated CoreWindows
-                real_pid = core_window_pids.get(title.lower(), 0)
-                if real_pid != 0:
-                    uwp_pid = real_pid
-                else:
-                    # 2. Fallback to child window enumeration
-                    _, child_pid = get_uwp_real_pid_and_hwnd(hwnd, pid.value)
-                    if child_pid != 0:
-                        uwp_pid = child_pid
-                    
-            exe_path, cmd_line = get_process_path_and_cmd(uwp_pid, pid_to_cmd)
-            exe_name = os.path.basename(exe_path).lower()
-            
-            # Resolve AUMID for UWP/packaged applications
-            aumid = get_process_aumid(uwp_pid)
-            if aumid:
-                cmd_line = f"explorer.exe shell:AppsFolder\\{aumid}"
-                
-            if exe_name == "code.exe":
-                ws_path = match_vscode_workspace(title, vscode_workspaces)
-                if ws_path:
-                    cmd_line = f'"{exe_path}" "{ws_path}"'
-            
-            if exe_name in ignored_set or exe_path == "Unknown":
-                return True
-                
-            placement = WINDOWPLACEMENT()
-            placement.length = ctypes.sizeof(WINDOWPLACEMENT)
-            user32.GetWindowPlacement(hwnd, ctypes.byref(placement))
-            
-            h_monitor = user32.MonitorFromWindow(hwnd, 2)
-            mi = MONITORINFOEXW()
-            mi.cbSize = ctypes.sizeof(MONITORINFOEXW)
-            monitor_device = "Unknown"
-            monitor_rect = ""
-            if user32.GetMonitorInfoW(h_monitor, ctypes.byref(mi)):
-                monitor_device = mi.szDevice
-                monitor_rect = f"{mi.rcMonitor.left},{mi.rcMonitor.top},{mi.rcMonitor.right},{mi.rcMonitor.bottom}"
-                
-            # Get Virtual Desktop ID
-            v_desktop_id = ""
-            v_desktop_name = ""
-            if vda:
-                desktop_guid = GUID()
-                hr = vda.get_window_desktop_id(vda.pManager, hwnd, ctypes.byref(desktop_guid))
-                if hr == 0:
-                    v_desktop_id = str(desktop_guid)
-                    v_desktop_name = desktop_map.get(v_desktop_id.upper(), "")
-                    
-            windows.append({
-                "title": title,
-                "class_name": class_name,
-                "exe_path": exe_path,
-                "cmd_line": cmd_line,
-                "rect": {
-                    "left": placement.rcNormalPosition.left,
-                    "top": placement.rcNormalPosition.top,
-                    "right": placement.rcNormalPosition.right,
-                    "bottom": placement.rcNormalPosition.bottom
-                },
-                "show_cmd": placement.showCmd,
-                "monitor_device": monitor_device,
-                "monitor_rect": monitor_rect,
-                "virtual_desktop_id": v_desktop_id,
-                "virtual_desktop_name": v_desktop_name
-            })
-            return True
 
-        cb = WNDENUMPROC(callback)
-        user32.EnumWindows(pre_cb, 0)
-        user32.EnumWindows(cb, 0)
+    def callback(hwnd, lparam):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+            
+        # Get styles
+        ex_style = user32.GetWindowLongW(hwnd, -20) # GWL_EXSTYLE
+        
+        # Filter out tool windows
+        if ex_style & 0x00000080: # WS_EX_TOOLWINDOW
+            return True
+            
+        # Filter out owned windows (GW_OWNER = 3) unless they explicitly set WS_EX_APPWINDOW
+        owner = user32.GetWindow(hwnd, 3)
+        if owner and user32.IsWindowVisible(owner) and not (ex_style & 0x00040000): # WS_EX_APPWINDOW
+            return True
+            
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length == 0:
+            return True
+            
+        title_buf = ctypes.create_unicode_buffer(length + 1)
+        user32.GetWindowTextW(hwnd, title_buf, length + 1)
+        title = title_buf.value
+        
+        class_buf = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(hwnd, class_buf, 256)
+        class_name = class_buf.value
+        
+        if class_name in ["Shell_TrayWnd", "Progman", "Windows.UI.Core.CoreWindow", "WorkerW", "MiniMapViewClass", "XamlExplorerHostIslandWindow"]:
+            return True
+            
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        
+        uwp_pid = pid.value
+        if class_name == "ApplicationFrameWindow":
+            # 1. Try matching by title against pre-enumerated CoreWindows
+            real_pid = core_window_pids.get(title.lower(), 0)
+            if real_pid != 0:
+                uwp_pid = real_pid
+            else:
+                # 2. Fallback to child window enumeration
+                _, child_pid = get_uwp_real_pid_and_hwnd(hwnd, pid.value)
+                if child_pid != 0:
+                    uwp_pid = child_pid
+                
+        exe_path, cmd_line = get_process_path_and_cmd(uwp_pid, pid_to_cmd)
+        exe_name = os.path.basename(exe_path).lower()
+        
+        # Resolve AUMID for UWP/packaged applications
+        aumid = get_process_aumid(uwp_pid)
+        if aumid:
+            cmd_line = f"explorer.exe shell:AppsFolder\\{aumid}"
+            
+        if exe_name == "code.exe":
+            ws_path = match_vscode_workspace(title, vscode_workspaces)
+            if ws_path:
+                cmd_line = f'"{exe_path}" "{ws_path}"'
+        
+        if exe_name in ignored_set or exe_path == "Unknown":
+            return True
+            
+        placement = WINDOWPLACEMENT()
+        placement.length = ctypes.sizeof(WINDOWPLACEMENT)
+        user32.GetWindowPlacement(hwnd, ctypes.byref(placement))
+        
+        h_monitor = user32.MonitorFromWindow(hwnd, 2)
+        mi = MONITORINFOEXW()
+        mi.cbSize = ctypes.sizeof(MONITORINFOEXW)
+        monitor_device = "Unknown"
+        monitor_rect = ""
+        if user32.GetMonitorInfoW(h_monitor, ctypes.byref(mi)):
+            monitor_device = mi.szDevice
+            monitor_rect = f"{mi.rcMonitor.left},{mi.rcMonitor.top},{mi.rcMonitor.right},{mi.rcMonitor.bottom}"
+            
+        # Get Virtual Desktop ID using pyvda (falls back to empty string on error)
+        v_desktop_id = ""
+        v_desktop_name = ""
+        if PYVDA_AVAILABLE:
+            try:
+                av = AppView(hwnd=hwnd)
+                d_id = str(av.desktop_id).upper()
+                v_desktop_id = str(av.desktop_id)  # keep original casing for storage
+                v_desktop_name = desktop_map.get(d_id, "")
+            except Exception:
+                pass
+            
+        windows.append({
+            "title": title,
+            "class_name": class_name,
+            "exe_path": exe_path,
+            "cmd_line": cmd_line,
+            "rect": {
+                "left": placement.rcNormalPosition.left,
+                "top": placement.rcNormalPosition.top,
+                "right": placement.rcNormalPosition.right,
+                "bottom": placement.rcNormalPosition.bottom
+            },
+            "show_cmd": placement.showCmd,
+            "monitor_device": monitor_device,
+            "monitor_rect": monitor_rect,
+            "virtual_desktop_id": v_desktop_id,
+            "virtual_desktop_name": v_desktop_name
+        })
+        return True
+
+    cb = WNDENUMPROC(callback)
+    user32.EnumWindows(pre_cb, 0)
+    user32.EnumWindows(cb, 0)
         
     if has_switched:
         user32.SetThreadDesktop(h_orig_desktop)
@@ -1133,7 +1131,7 @@ def find_window_by_process_and_title(exe_name, title, class_name, exclude_hwnds=
     return found_hwnd[0]
 
 
-def restore_window_position(hwnd, win_data, current_monitors, vda=None, name_to_guid=None, current_desktops_map=None):
+def restore_window_position(hwnd, win_data, current_monitors, name_to_guid=None, current_desktops_map=None, desktop_order=None):
     saved_device = win_data.get("monitor_device", "Unknown")
     
     monitor_exists = False
@@ -1187,18 +1185,17 @@ def restore_window_position(hwnd, win_data, current_monitors, vda=None, name_to_
     if h_default:
         user32.CloseDesktop(h_default)
 
-    # Move window to target virtual desktop
-    # We resolve the target desktop by name first, then by saved GUID.
-    # We use move_hwnd_to_desktop_by_index() which calls PowerShell with inline C#
-    # to access IVirtualDesktopManagerInternal — the only reliable way to move
-    # foreign-process windows across virtual desktops on Windows 10/11.
+    # Move window to its saved virtual desktop.
+    # Resolution priority: name match → GUID match.
+    # move_hwnd_to_desktop_by_index uses pyvda internally, which talks directly
+    # to IVirtualDesktopManagerInternal — no PowerShell, no E_ACCESSDENIED.
     if current_desktops_map is not None:
         target_name = win_data.get("virtual_desktop_name", "")
         saved_guid = win_data.get("virtual_desktop_id", "")
         
         target_guid_str = None
         
-        # 1. Try match by name
+        # 1. Try match by name (most reliable after reboot / GUID reassignment)
         if target_name and name_to_guid:
             target_guid_str = name_to_guid.get(target_name.lower())
             
@@ -1208,30 +1205,27 @@ def restore_window_position(hwnd, win_data, current_monitors, vda=None, name_to_
                 target_guid_str = saved_guid
                 
         if target_guid_str:
-            # Find 0-based index of the target desktop in the ordered list
-            _, desktop_order = get_virtual_desktop_info()
+            order_to_use = desktop_order
+            if not order_to_use:
+                _, order_to_use = get_virtual_desktop_info()
+
             target_idx = None
-            for i, guid in enumerate(desktop_order):
+            for i, guid in enumerate(order_to_use):
                 if guid.upper() == target_guid_str.upper():
                     target_idx = i
                     break
                     
             if target_idx is not None:
-                # Give the window a moment to fully initialize before moving
-                time.sleep(0.15)
+                # Give the window 0.8 s to fully initialise before moving.
+                # move_hwnd_to_desktop_by_index already retries internally.
+                time.sleep(0.8)
                 ok = move_hwnd_to_desktop_by_index(hwnd, target_idx)
-                if not ok:
-                    # Fallback: try the COM API (works for windows on the current desktop)
-                    if vda:
-                        try:
-                            target_guid = GUID.from_str(target_guid_str)
-                            hr = vda.move_window_to_desktop(vda.pManager, hwnd, ctypes.byref(target_guid))
-                            if hr != 0:
-                                print(f"[VD] COM MoveWindowToDesktop fallback hr=0x{hr:08X} for hwnd={hwnd}")
-                        except Exception as e:
-                            print(f"[VD] COM fallback error: {e}")
+                if ok:
+                    print(f"[VD] Moved hwnd={hwnd} -> desktop[{target_idx}] '{target_name}'")
+                else:
+                    print(f"[VD] Failed to move hwnd={hwnd} -> desktop '{target_name}'")
             else:
-                print(f"[VD] Could not find desktop index for GUID {target_guid_str}")
+                print(f"[VD] Desktop GUID {target_guid_str} ('{target_name}') not in current order")
 
 def show_cmd_to_state(show_cmd):
     if show_cmd == 2:
@@ -1255,332 +1249,334 @@ def restore_workspace_action(workspace_id):
     current_monitors = get_monitors()
     running_processes = get_running_process_names()
     
-    # Load current virtual desktop mappings
+    # Load current virtual desktop mappings once; pass desktop_order to every
+    # restore_window_position call so it doesn't re-query the registry each time.
     current_desktops_map, current_desktops_order = get_virtual_desktop_info()
     name_to_guid = {name.lower(): guid for guid, name in current_desktops_map.items()}
-    
-    vda_scope = VirtualDesktopManagerScope()
-    vda = vda_scope.__enter__()
+    print(f"[VD] Desktops available for restore: {[(i, current_desktops_map.get(g, g)) for i, g in enumerate(current_desktops_order)]}")
     
     restore_summary = []
-    try:
-        exclude_hwnds = set()
-        restored_browsers = set()
-        pre_restore_browser_hwnds = {}
-        
-        browser_exes = {
-            "chrome": "chrome.exe",
-            "edge": "msedge.exe",
-            "brave": "brave.exe",
-            "opera": "opera.exe",
-            "vivaldi": "vivaldi.exe"
-        }
+    exclude_hwnds = set()
+    restored_browsers = set()
+    pre_restore_browser_hwnds = {}
+    
+    browser_exes = {
+        "chrome": "chrome.exe",
+        "edge": "msedge.exe",
+        "brave": "brave.exe",
+        "opera": "opera.exe",
+        "vivaldi": "vivaldi.exe"
+    }
 
-        # 1. Restore Browser Tabs (with coordinate positioning) FIRST
-        if tabs:
-            browser_groups = {}
-            for t in tabs:
-                b = t["browser"]
-                if b not in browser_groups:
-                    browser_groups[b] = []
-                browser_groups[b].append(t)
+    # 1. Restore Browser Tabs (with coordinate positioning) FIRST
+    if tabs:
+        browser_groups = {}
+        for t in tabs:
+            b = t["browser"]
+            if b not in browser_groups:
+                browser_groups[b] = []
+            browser_groups[b].append(t)
+            
+        for browser, b_tabs in browser_groups.items():
+            b_process = "chrome"
+            b_exe = "chrome.exe"
+            if browser == "edge":
+                b_process = "msedge"
+                b_exe = "msedge.exe"
+            elif browser == "brave":
+                b_process = "brave"
+                b_exe = "brave.exe"
+            elif browser == "opera":
+                b_process = "opera"
+                b_exe = "launcher.exe"
+            elif browser == "vivaldi":
+                b_process = "vivaldi"
+                b_exe = "vivaldi.exe"
                 
-            for browser, b_tabs in browser_groups.items():
-                b_process = "chrome"
-                b_exe = "chrome.exe"
-                if browser == "edge":
-                    b_process = "msedge"
-                    b_exe = "msedge.exe"
-                elif browser == "brave":
-                    b_process = "brave"
-                    b_exe = "brave.exe"
-                elif browser == "opera":
-                    b_process = "opera"
-                    b_exe = "launcher.exe"
-                elif browser == "vivaldi":
-                    b_process = "vivaldi"
-                    b_exe = "vivaldi.exe"
+            # Gather pre-existing browser HWNDs
+            pre_restore_browser_hwnds[browser] = get_hwnds_for_process(b_exe)
+            
+            # If the browser is not running, launch it to allow the extension to connect
+            if b_process not in running_processes:
+                try:
+                    b_path = ""
+                    if browser == "chrome":
+                        b_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+                        if not os.path.exists(b_path):
+                            b_path = os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe")
+                    elif browser == "edge":
+                        b_path = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+                    elif browser == "brave":
+                        b_path = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
+                        if not os.path.exists(b_path):
+                            b_path = os.path.expandvars(r"%LocalAppData%\BraveSoftware\Brave-Browser\Application\brave.exe")
                     
-                # Gather pre-existing browser HWNDs
-                pre_restore_browser_hwnds[browser] = get_hwnds_for_process(b_exe)
-                
-                # If the browser is not running, launch it to allow the extension to connect
-                if b_process not in running_processes:
-                    try:
-                        b_path = ""
-                        if browser == "chrome":
-                            b_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-                            if not os.path.exists(b_path):
-                                b_path = os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe")
-                        elif browser == "edge":
-                            b_path = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-                        elif browser == "brave":
-                            b_path = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
-                            if not os.path.exists(b_path):
-                                b_path = os.path.expandvars(r"%LocalAppData%\BraveSoftware\Brave-Browser\Application\brave.exe")
+                    if b_path and os.path.exists(b_path):
+                        subprocess.Popen(f'"{b_path}"', shell=True)
+                    else:
+                        subprocess.Popen(b_exe, shell=True)
                         
-                        if b_path and os.path.exists(b_path):
-                            subprocess.Popen(f'"{b_path}"', shell=True)
-                        else:
-                            subprocess.Popen(b_exe, shell=True)
-                            
-                        # Wait for extension to connect
-                        connected = False
-                        for _ in range(25):
-                            time.sleep(0.2)
-                            if browser in connected_browsers:
-                                connected = True
-                                break
-                    except:
-                        pass
+                    # Wait for extension to connect
+                    connected = False
+                    for _ in range(25):
+                        time.sleep(0.2)
+                        if browser in connected_browsers:
+                            connected = True
+                            break
+                except:
+                    pass
+            
+            ws_sock = connected_browsers.get(browser)
+            if ws_sock:
+                # Group tabs by window_id
+                tabs_by_window = {}
+                for t in b_tabs:
+                    w_id = t["window_id"]
+                    if w_id not in tabs_by_window:
+                        tabs_by_window[w_id] = []
+                    tabs_by_window[w_id].append(t)
                 
-                ws_sock = connected_browsers.get(browser)
-                if ws_sock:
-                    # Group tabs by window_id
-                    tabs_by_window = {}
-                    for t in b_tabs:
-                        w_id = t["window_id"]
-                        if w_id not in tabs_by_window:
-                            tabs_by_window[w_id] = []
-                        tabs_by_window[w_id].append(t)
+                restore_windows = []
+                for w_id, group_tabs in tabs_by_window.items():
+                    # Find active tab
+                    active_tab = None
+                    for t in group_tabs:
+                        if t.get("active"):
+                            active_tab = t
+                            break
+                    if not active_tab and group_tabs:
+                        active_tab = group_tabs[0]
                     
-                    restore_windows = []
-                    for w_id, group_tabs in tabs_by_window.items():
-                        # Find active tab
-                        active_tab = None
-                        for t in group_tabs:
-                            if t.get("active"):
-                                active_tab = t
+                    active_title = active_tab["title"] if active_tab else ""
+                    
+                    # Search saved Win32 windows for matching coordinates
+                    matched_win = None
+                    for w in windows:
+                        w_exe = os.path.basename(w["exe_path"]).lower()
+                        if w_exe == b_exe:
+                            if active_title and (active_title.lower() in w["title"].lower() or w["title"].lower() in active_title.lower()):
+                                matched_win = w
                                 break
-                        if not active_tab and group_tabs:
-                            active_tab = group_tabs[0]
-                        
-                        active_title = active_tab["title"] if active_tab else ""
-                        
-                        # Search saved Win32 windows for matching coordinates
-                        matched_win = None
+                                
+                    if not matched_win:
+                        # Fallback: grab first unmatched browser window of this type
                         for w in windows:
                             w_exe = os.path.basename(w["exe_path"]).lower()
                             if w_exe == b_exe:
-                                if active_title and (active_title.lower() in w["title"].lower() or w["title"].lower() in active_title.lower()):
+                                if w not in [rw.get("_matched_w") for rw in restore_windows if "_matched_w" in rw]:
                                     matched_win = w
                                     break
                                     
-                        if not matched_win:
-                            # Fallback: grab first unmatched browser window of this type
-                            for w in windows:
-                                w_exe = os.path.basename(w["exe_path"]).lower()
-                                if w_exe == b_exe:
-                                    if w not in [rw.get("_matched_w") for rw in restore_windows if "_matched_w" in rw]:
-                                        matched_win = w
-                                        break
-                                        
-                        win_info = {
-                            "tabs": [{
-                                "url": t["url"],
-                                "active": bool(t["active"])
-                            } for t in group_tabs]
-                        }
-                        
-                        if matched_win:
-                            win_info["_matched_w"] = matched_win  # Temp marker
-                            win_info["left"] = matched_win["left"]
-                            win_info["top"] = matched_win["top"]
-                            win_info["width"] = matched_win["right"] - matched_win["left"]
-                            win_info["height"] = matched_win["bottom"] - matched_win["top"]
-                            win_info["state"] = show_cmd_to_state(matched_win["show_cmd"])
-                            
-                        restore_windows.append(win_info)
-                        
-                    # Strip temp markers
-                    for rw in restore_windows:
-                        if "_matched_w" in rw:
-                            del rw["_matched_w"]
-                            
-                    ws_msg = json.dumps({
-                        "type": "RESTORE_TABS",
-                        "windows": restore_windows
-                    })
-                    try:
-                        ws_sock.send(encode_websocket_frame(ws_msg))
-                        restored_browsers.add(browser)
-                        restore_summary.append({"app": f"{browser.capitalize()} Tabs", "status": f"Restored {len(tabs_by_window)} windows"})
-                    except Exception as e:
-                        restore_summary.append({"app": f"{browser.capitalize()} Tabs", "status": f"Restoration command failed: {str(e)}"})
-                else:
-                    restore_summary.append({"app": f"{browser.capitalize()} Tabs", "status": "Failed (Browser extension disconnected). Will restore browser window only."})
-
-        # 2. Exclude browsers from other_windows only if their tabs were successfully restored via extension
-        exclude_exes = ["explorer.exe", "code.exe"]
-        for b in restored_browsers:
-            if b in browser_exes:
-                exclude_exes.append(browser_exes[b])
-                
-        explorer_windows = [w for w in windows if os.path.basename(w["exe_path"]).lower() == "explorer.exe"]
-        vscode_windows = [w for w in windows if os.path.basename(w["exe_path"]).lower() == "code.exe"]
-        other_windows = [w for w in windows if os.path.basename(w["exe_path"]).lower() not in exclude_exes]
-        
-        # 3. Restore File Explorers
-        for ew in explorer_windows:
-            folder_path = None
-            cmd = ew.get("cmd_line", "")
-            m = re.search(r'([a-zA-Z]:\\[^"]+)', cmd)
-            if m and os.path.exists(m.group(1)):
-                folder_path = m.group(1)
-            elif os.path.exists(ew["title"]):
-                folder_path = ew["title"]
-                
-            if folder_path:
-                pre_launch_hwnds = get_hwnds_for_process("explorer.exe")
-                subprocess.Popen(f'explorer.exe "{folder_path}"', shell=True)
-                hwnd = None
-                for _ in range(30):
-                    hwnd = find_window_by_process_and_title("explorer.exe", ew["title"], ew["class_name"], exclude_hwnds | pre_launch_hwnds)
-                    if hwnd:
-                        break
-                    time.sleep(0.5)
-                if hwnd:
-                    restore_window_position(hwnd, ew, current_monitors, vda, name_to_guid, current_desktops_map)
-                    exclude_hwnds.add(hwnd)
-                    desktop_name = ew.get("virtual_desktop_name", "")
-                    status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
-                    restore_summary.append({"app": "File Explorer", "status": status_str, "path": folder_path})
-                else:
-                    restore_summary.append({"app": "File Explorer", "status": "Opened but position failed", "path": folder_path})
-            else:
-                pre_launch_hwnds = get_hwnds_for_process("explorer.exe")
-                subprocess.Popen("explorer.exe", shell=True)
-                hwnd = None
-                for _ in range(30):
-                    hwnd = find_window_by_process_and_title("explorer.exe", ew["title"], ew["class_name"], exclude_hwnds | pre_launch_hwnds)
-                    if hwnd:
-                        break
-                    time.sleep(0.5)
-                if hwnd:
-                    restore_window_position(hwnd, ew, current_monitors, vda, name_to_guid, current_desktops_map)
-                    exclude_hwnds.add(hwnd)
-                    desktop_name = ew.get("virtual_desktop_name", "")
-                    status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
-                    restore_summary.append({"app": "File Explorer", "status": status_str})
-                else:
-                    restore_summary.append({"app": "File Explorer", "status": "Opened (no folder path resolved)"})
-
-        # 4. Restore VS Code
-        for vw in vscode_windows:
-            folder_path = None
-            cmd = vw.get("cmd_line", "")
-            matches = re.findall(r'(?:"([a-zA-Z]:\\[^"]+)"|([a-zA-Z]:\\[^\s]+))', cmd)
-            for m in matches:
-                p = m[0] or m[1]
-                if os.path.isdir(p):
-                    folder_path = p
-                    break
+                    win_info = {
+                        "tabs": [{
+                            "url": t["url"],
+                            "active": bool(t["active"])
+                        } for t in group_tabs]
+                    }
                     
-            exe_path = vw.get("exe_path")
-            if not exe_path or not os.path.exists(exe_path):
-                exe_path = "code.exe"
-            vscode_cmd = f'"{exe_path}" "{folder_path}"' if folder_path else f'"{exe_path}"'
-            try:
-                pre_launch_hwnds = get_hwnds_for_process("code.exe")
-                subprocess.Popen(vscode_cmd, shell=True)
-                hwnd = None
-                for _ in range(30):
-                    hwnd = find_window_by_process_and_title("code.exe", vw["title"], vw["class_name"], exclude_hwnds | pre_launch_hwnds)
-                    if hwnd:
-                        break
-                    time.sleep(0.5)
-                if hwnd:
-                    restore_window_position(hwnd, vw, current_monitors, vda, name_to_guid, current_desktops_map)
-                    exclude_hwnds.add(hwnd)
-                    desktop_name = vw.get("virtual_desktop_name", "")
-                    status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
-                    restore_summary.append({"app": "VS Code", "status": status_str, "path": folder_path})
-                else:
-                    restore_summary.append({"app": "VS Code", "status": "Opened but position failed", "path": folder_path})
-            except Exception as e:
-                restore_summary.append({"app": "VS Code", "status": f"Launch failed: {str(e)}"})
+                    if matched_win:
+                        win_info["_matched_w"] = matched_win  # Temp marker
+                        win_info["left"] = matched_win["left"]
+                        win_info["top"] = matched_win["top"]
+                        win_info["width"] = matched_win["right"] - matched_win["left"]
+                        win_info["height"] = matched_win["bottom"] - matched_win["top"]
+                        win_info["state"] = show_cmd_to_state(matched_win["show_cmd"])
+                        
+                    restore_windows.append(win_info)
+                    
+                # Strip temp markers
+                for rw in restore_windows:
+                    if "_matched_w" in rw:
+                        del rw["_matched_w"]
+                        
+                ws_msg = json.dumps({
+                    "type": "RESTORE_TABS",
+                    "windows": restore_windows
+                })
+                try:
+                    ws_sock.send(encode_websocket_frame(ws_msg))
+                    restored_browsers.add(browser)
+                    restore_summary.append({"app": f"{browser.capitalize()} Tabs", "status": f"Restored {len(tabs_by_window)} windows"})
+                except Exception as e:
+                    restore_summary.append({"app": f"{browser.capitalize()} Tabs", "status": f"Restoration command failed: {str(e)}"})
+            else:
+                restore_summary.append({"app": f"{browser.capitalize()} Tabs", "status": "Failed (Browser extension disconnected). Will restore browser window only."})
 
-        # 5. Restore Other Windows
-        for ow in other_windows:
-            exe_path = ow["exe_path"]
-            exe_name = os.path.basename(exe_path).lower()
-            exe_pname = os.path.splitext(exe_name)[0]
+    # 2. Exclude browsers from other_windows only if their tabs were successfully restored via extension
+    exclude_exes = ["explorer.exe", "code.exe"]
+    for b in restored_browsers:
+        if b in browser_exes:
+            exclude_exes.append(browser_exes[b])
             
-            if not os.path.exists(exe_path):
-                restore_summary.append({"app": ow["title"], "status": f"Missing (Path: {exe_path})"})
+    explorer_windows = [w for w in windows if os.path.basename(w["exe_path"]).lower() == "explorer.exe"]
+    vscode_windows = [w for w in windows if os.path.basename(w["exe_path"]).lower() == "code.exe"]
+    other_windows = [w for w in windows if os.path.basename(w["exe_path"]).lower() not in exclude_exes]
+    
+    # 3. Restore File Explorers
+    for ew in explorer_windows:
+        folder_path = None
+        cmd = ew.get("cmd_line", "")
+        m = re.search(r'([a-zA-Z]:\\[^"]+)', cmd)
+        if m and os.path.exists(m.group(1)):
+            folder_path = m.group(1)
+        elif os.path.exists(ew["title"]):
+            folder_path = ew["title"]
+            
+        if folder_path:
+            pre_launch_hwnds = get_hwnds_for_process("explorer.exe")
+            subprocess.Popen(f'explorer.exe "{folder_path}"', shell=True)
+            hwnd = None
+            for _ in range(30):
+                hwnd = find_window_by_process_and_title("explorer.exe", ew["title"], ew["class_name"], exclude_hwnds | pre_launch_hwnds)
+                if hwnd:
+                    break
+                time.sleep(0.5)
+            if hwnd:
+                restore_window_position(hwnd, ew, current_monitors, name_to_guid, current_desktops_map, current_desktops_order)
+                exclude_hwnds.add(hwnd)
+                desktop_name = ew.get("virtual_desktop_name", "")
+                status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
+                restore_summary.append({"app": "File Explorer", "status": status_str, "path": folder_path})
+            else:
+                restore_summary.append({"app": "File Explorer", "status": "Opened but position failed", "path": folder_path})
+        else:
+            pre_launch_hwnds = get_hwnds_for_process("explorer.exe")
+            subprocess.Popen("explorer.exe", shell=True)
+            hwnd = None
+            for _ in range(30):
+                hwnd = find_window_by_process_and_title("explorer.exe", ew["title"], ew["class_name"], exclude_hwnds | pre_launch_hwnds)
+                if hwnd:
+                    break
+                time.sleep(0.5)
+            if hwnd:
+                restore_window_position(hwnd, ew, current_monitors, name_to_guid, current_desktops_map, current_desktops_order)
+                exclude_hwnds.add(hwnd)
+                desktop_name = ew.get("virtual_desktop_name", "")
+                status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
+                restore_summary.append({"app": "File Explorer", "status": status_str})
+            else:
+                restore_summary.append({"app": "File Explorer", "status": "Opened (no folder path resolved)"})
+        if delay > 0:
+            time.sleep(delay)
+
+    # 4. Restore VS Code
+    for vw in vscode_windows:
+        folder_path = None
+        cmd = vw.get("cmd_line", "")
+        matches = re.findall(r'(?:"([a-zA-Z]:\\[^"]+)"|([a-zA-Z]:\\[^\s]+))', cmd)
+        for m in matches:
+            p = m[0] or m[1]
+            if os.path.isdir(p):
+                folder_path = p
+                break
+                
+        exe_path = vw.get("exe_path")
+        if not exe_path or not os.path.exists(exe_path):
+            exe_path = "code.exe"
+        vscode_cmd = f'"{exe_path}" "{folder_path}"' if folder_path else f'"{exe_path}"'
+        try:
+            pre_launch_hwnds = get_hwnds_for_process("code.exe")
+            subprocess.Popen(vscode_cmd, shell=True)
+            hwnd = None
+            for _ in range(30):
+                hwnd = find_window_by_process_and_title("code.exe", vw["title"], vw["class_name"], exclude_hwnds | pre_launch_hwnds)
+                if hwnd:
+                    break
+                time.sleep(0.5)
+            if hwnd:
+                restore_window_position(hwnd, vw, current_monitors, name_to_guid, current_desktops_map, current_desktops_order)
+                exclude_hwnds.add(hwnd)
+                desktop_name = vw.get("virtual_desktop_name", "")
+                status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
+                restore_summary.append({"app": "VS Code", "status": status_str, "path": folder_path})
+            else:
+                restore_summary.append({"app": "VS Code", "status": "Opened but position failed", "path": folder_path})
+            if delay > 0:
+                time.sleep(delay)
+        except Exception as e:
+            restore_summary.append({"app": "VS Code", "status": f"Launch failed: {str(e)}"})
+
+    # 5. Restore Other Windows
+    for ow in other_windows:
+        exe_path = ow["exe_path"]
+        exe_name = os.path.basename(exe_path).lower()
+        exe_pname = os.path.splitext(exe_name)[0]
+        
+        if not os.path.exists(exe_path):
+            restore_summary.append({"app": ow["title"], "status": f"Missing (Path: {exe_path})"})
+            continue
+            
+        is_running = exe_pname in running_processes
+        if is_running and skip_running:
+            hwnd = find_window_by_process_and_title(exe_name, ow["title"], ow["class_name"], exclude_hwnds)
+            if hwnd:
+                restore_window_position(hwnd, ow, current_monitors, name_to_guid, current_desktops_map, current_desktops_order)
+                exclude_hwnds.add(hwnd)
+                desktop_name = ow.get("virtual_desktop_name", "")
+                status_str = f"Repositioned (Already running - Desktop: {desktop_name})" if desktop_name else "Repositioned (Already running)"
+                restore_summary.append({"app": ow["title"], "status": status_str})
                 continue
                 
-            is_running = exe_pname in running_processes
-            if is_running and skip_running:
-                hwnd = find_window_by_process_and_title(exe_name, ow["title"], ow["class_name"], exclude_hwnds)
-                if hwnd:
-                    restore_window_position(hwnd, ow, current_monitors, vda, name_to_guid, current_desktops_map)
-                    exclude_hwnds.add(hwnd)
-                    desktop_name = ow.get("virtual_desktop_name", "")
-                    status_str = f"Repositioned (Already running - Desktop: {desktop_name})" if desktop_name else "Repositioned (Already running)"
-                    restore_summary.append({"app": ow["title"], "status": status_str})
-                    continue
-                    
-            try:
-                launch_cmd = ow.get("cmd_line", "")
-                
-                # Check if this is a browser and adjust launch_cmd to open in new window
-                browser_exes_list = ["chrome.exe", "msedge.exe", "brave.exe", "vivaldi.exe", "opera.exe", "launcher.exe", "firefox.exe"]
-                if exe_name in browser_exes_list:
-                    launch_cmd = adjust_browser_launch_cmd(exe_name, launch_cmd, exe_path)
-                elif not launch_cmd or not launch_cmd.strip():
-                    launch_cmd = f'"{exe_path}"'
-                    
-                pre_launch_hwnds = get_hwnds_for_process(exe_name)
-                subprocess.Popen(launch_cmd, shell=True)
-                hwnd = None
-                for _ in range(30):
-                    hwnd = find_window_by_process_and_title(exe_name, ow["title"], ow["class_name"], exclude_hwnds | pre_launch_hwnds)
-                    if hwnd:
-                        break
-                    time.sleep(0.5)
-                
-                if hwnd:
-                    restore_window_position(hwnd, ow, current_monitors, vda, name_to_guid, current_desktops_map)
-                    exclude_hwnds.add(hwnd)
-                    desktop_name = ow.get("virtual_desktop_name", "")
-                    status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
-                    restore_summary.append({"app": ow["title"], "status": status_str})
-                else:
-                    restore_summary.append({"app": ow["title"], "status": "Launched but window not found"})
-            except Exception as e:
-                restore_summary.append({"app": ow["title"], "status": f"Launch failed: {str(e)}"})
-
-        # 6. Reposition Restored Browser Windows
-        browser_windows = [w for w in windows if os.path.basename(w["exe_path"]).lower() in browser_exes.values()]
-        for bw in browser_windows:
-            exe_name = os.path.basename(bw["exe_path"]).lower()
-            browser_name = None
-            for b, b_exe in browser_exes.items():
-                if b_exe == exe_name:
-                    browser_name = b
-                    break
+        try:
+            launch_cmd = ow.get("cmd_line", "")
             
-            if browser_name in restored_browsers:
-                hwnd = None
-                pre_hwnds = pre_restore_browser_hwnds.get(browser_name, set())
-                for _ in range(30):
-                    hwnd = find_window_by_process_and_title(exe_name, bw["title"], bw["class_name"], exclude_hwnds | pre_hwnds)
-                    if hwnd:
-                        break
-                    time.sleep(0.5)
-                    
+            # Check if this is a browser and adjust launch_cmd to open in new window
+            browser_exes_list = ["chrome.exe", "msedge.exe", "brave.exe", "vivaldi.exe", "opera.exe", "launcher.exe", "firefox.exe"]
+            if exe_name in browser_exes_list:
+                launch_cmd = adjust_browser_launch_cmd(exe_name, launch_cmd, exe_path)
+            elif not launch_cmd or not launch_cmd.strip():
+                launch_cmd = f'"{exe_path}"'
+                
+            pre_launch_hwnds = get_hwnds_for_process(exe_name)
+            subprocess.Popen(launch_cmd, shell=True)
+            hwnd = None
+            for _ in range(30):
+                hwnd = find_window_by_process_and_title(exe_name, ow["title"], ow["class_name"], exclude_hwnds | pre_launch_hwnds)
                 if hwnd:
-                    restore_window_position(hwnd, bw, current_monitors, vda, name_to_guid, current_desktops_map)
-                    exclude_hwnds.add(hwnd)
-                    desktop_name = bw.get("virtual_desktop_name", "")
-                    status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
-                    restore_summary.append({"app": f"{browser_name.capitalize()} Window", "status": status_str})
-                else:
-                    restore_summary.append({"app": f"{browser_name.capitalize()} Window", "status": "Restored tabs but window position/desktop failed"})
-    finally:
-        vda_scope.__exit__(None, None, None)
+                    break
+                time.sleep(0.5)
+            
+            if hwnd:
+                restore_window_position(hwnd, ow, current_monitors, name_to_guid, current_desktops_map, current_desktops_order)
+                exclude_hwnds.add(hwnd)
+                desktop_name = ow.get("virtual_desktop_name", "")
+                status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
+                restore_summary.append({"app": ow["title"], "status": status_str})
+            else:
+                restore_summary.append({"app": ow["title"], "status": "Launched but window not found"})
+            if delay > 0:
+                time.sleep(delay)
+        except Exception as e:
+            restore_summary.append({"app": ow["title"], "status": f"Launch failed: {str(e)}"})
+
+    # 6. Reposition Restored Browser Windows
+    browser_windows = [w for w in windows if os.path.basename(w["exe_path"]).lower() in browser_exes.values()]
+    for bw in browser_windows:
+        exe_name = os.path.basename(bw["exe_path"]).lower()
+        browser_name = None
+        for b, b_exe in browser_exes.items():
+            if b_exe == exe_name:
+                browser_name = b
+                break
         
+        if browser_name in restored_browsers:
+            hwnd = None
+            pre_hwnds = pre_restore_browser_hwnds.get(browser_name, set())
+            for _ in range(30):
+                hwnd = find_window_by_process_and_title(exe_name, bw["title"], bw["class_name"], exclude_hwnds | pre_hwnds)
+                if hwnd:
+                    break
+                time.sleep(0.5)
+                
+            if hwnd:
+                restore_window_position(hwnd, bw, current_monitors, name_to_guid, current_desktops_map, current_desktops_order)
+                exclude_hwnds.add(hwnd)
+                desktop_name = bw.get("virtual_desktop_name", "")
+                status_str = f"Restored (Desktop: {desktop_name})" if desktop_name else "Restored"
+                restore_summary.append({"app": f"{browser_name.capitalize()} Window", "status": status_str})
+            else:
+                restore_summary.append({"app": f"{browser_name.capitalize()} Window", "status": "Restored tabs but window position/desktop failed"})
+    
     return restore_summary
 
 def handle_websocket_handshake(headers):
@@ -2088,15 +2084,6 @@ def handle_http_request(client_sock, client_addr):
                 db["settings"][k] = str(v)
             save_db(db)
             
-            if "launch_at_startup" in req_data:
-                startup_val = int(req_data["launch_at_startup"])
-                app_path = sys.argv[0] if sys.argv[0].endswith(".exe") else "python.exe"
-                reg_cmd = f'Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" -Name "Docksy" -Value "{app_path}"' if startup_val else 'Remove-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" -Name "Docksy" -ErrorAction SilentlyContinue'
-                try:
-                    subprocess.run(["powershell", "-NoProfile", "-Command", reg_cmd], timeout=2)
-                except:
-                    pass
-                    
             response_data = {"status": "success"}
             status_code = "200 OK"
             
