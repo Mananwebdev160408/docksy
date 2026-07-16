@@ -45,3 +45,6 @@ backend/dist/
 
 # Electron Builder Packaging
 dist-packaged/
+.agents/
+.claude/
+.impeccable/
