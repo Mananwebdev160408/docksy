@@ -298,8 +298,7 @@ export default function Home() {
                     <span style={{ color: "#4c566a", fontSize: "0.7rem" }}>Windows x64 • ~45MB • MIT License</span>
                   </div>
                   <a
-                    href="/Docksy_Setup_1.0.0.exe"
-                    download
+                    href="https://github.com/Mananwebdev160408/docksy/releases/latest/download/Docksy.Setup.1.0.0.exe"
                     className="btn btn-primary"
                     style={{ padding: "8px 16px", fontSize: "0.75rem" }}
                   >
