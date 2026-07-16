@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Docksy Tab Manager",
+  "version": "1.0.0",
+  "description": "Integrates Chrome/Edge open tabs with the Docksy Desktop Workspace Restorer.",
+  "permissions": [
+    "tabs",
+    "windows"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
