@@ -98,7 +98,7 @@ function startPythonBackend() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, '../src/assets/logo.png');
+  const iconPath = path.join(__dirname, 'logo.png');
 
   let icon = fs.existsSync(iconPath)
     ? nativeImage.createFromPath(iconPath)
@@ -132,7 +132,7 @@ function createTray() {
 }
 
 function createWindow() {
-  const iconPath = path.join(__dirname, '../src/assets/logo.png');
+  const iconPath = path.join(__dirname, 'logo.png');
 
   mainWindow = new BrowserWindow({
     width: 1050,
