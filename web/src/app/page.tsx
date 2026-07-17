@@ -26,7 +26,222 @@ import {
   Eye,
   FileText,
   Check,
+  Folder,
+  Trash2,
 } from "lucide-react";
+
+interface DevFile {
+  language: string;
+  runnable: boolean;
+  content: string;
+  command?: string;
+  simulation?: Array<{
+    text: string;
+    delay?: number;
+    type?: string;
+    color?: string;
+  }>;
+}
+
+const DEV_FILES: Record<string, DevFile> = {
+  "PREREQUISITES.md": {
+    language: "markdown",
+    runnable: false,
+    content: `# Prerequisites for Docksy
+
+Before setting up the repository, make sure your machine has:
+
+- Windows 10 or 11 (64-bit)
+- Node.js v18.0.0 or higher
+- Python v3.8.0 or higher
+- Pip (Python Package Installer)
+
+Run the shell scripts to download dependencies, start dev, or build.`,
+  },
+  "setup.sh": {
+    language: "bash",
+    runnable: true,
+    command: "bash ./setup.sh",
+    content: `#!/bin/bash
+# 1. Clone the official repository
+git clone https://github.com/Mananwebdev160408/docksy.git
+cd docksy
+
+# 2. Install workspace dependencies
+npm install
+
+# 3. Setup local Python environment
+pip install pyvda`,
+    simulation: [
+      {
+        text: "$ git clone https://github.com/Mananwebdev160408/docksy.git",
+        delay: 300,
+        type: "command",
+      },
+      { text: "Cloning into 'docksy'...", delay: 200 },
+      { text: "remote: Enumerating objects: 128, done.", delay: 400 },
+      { text: "remote: Counting objects: 100% (128/128), done.", delay: 300 },
+      { text: "remote: Compressing objects: 100% (94/94), done.", delay: 400 },
+      {
+        text: "Receiving objects: 100% (128/128), 2.14 MiB | 5.2 MB/s, done.",
+        delay: 600,
+      },
+      { text: "Resolving deltas: 100% (52/52), done.", delay: 200 },
+      { text: "$ cd docksy && npm install", delay: 500, type: "command" },
+      {
+        text: "npm WARN deprecated inflight@1.0.6: Please look at lru-cache...",
+        delay: 300,
+        color: "text-zinc-500",
+      },
+      {
+        text: "npm verb idealTree buildDeps",
+        delay: 200,
+        color: "text-zinc-500",
+      },
+      {
+        text: "added 842 packages, and audited 843 packages in 4.2s",
+        delay: 1000,
+        color: "text-emerald-400",
+      },
+      {
+        text: "found 0 vulnerabilities",
+        delay: 100,
+        color: "text-emerald-400",
+      },
+      { text: "$ pip install pyvda", delay: 400, type: "command" },
+      { text: "Collecting pyvda", delay: 200 },
+      {
+        text: "  Downloading pyvda-0.2.6-py3-none-any.whl (12 kB)",
+        delay: 300,
+      },
+      {
+        text: "Requirement already satisfied: comtypes in c:\\python310\\lib\\site-packages",
+        delay: 150,
+        color: "text-zinc-400",
+      },
+      { text: "Installing collected packages: pyvda", delay: 250 },
+      {
+        text: "Successfully installed pyvda-0.2.6",
+        delay: 300,
+        color: "text-emerald-400",
+      },
+      {
+        text: "✓ Developer setup completed successfully!",
+        delay: 200,
+        color: "text-emerald-400 font-bold",
+      },
+    ],
+  },
+  "dev.sh": {
+    language: "bash",
+    runnable: true,
+    command: "npm run dev",
+    content: `#!/bin/bash
+# Start Docksy in local Development Mode
+# Spawns: Vite Dev Server + Electron Container + Python API Service
+npm run dev`,
+    simulation: [
+      { text: "$ npm run dev", delay: 300, type: "command" },
+      { text: "> docksy@0.1.0 dev", delay: 200 },
+      {
+        text: '> concurrent-run "npm:dev:vite" "npm:dev:electron" "npm:dev:python"',
+        delay: 300,
+      },
+      {
+        text: "▲ Next.js 16.2.10 (Turbopack) client boot...",
+        delay: 400,
+        color: "text-white font-bold",
+      },
+      { text: "  - Local: http://localhost:3000", delay: 100 },
+      {
+        text: "✓ Compiled web dashboard in 920ms",
+        delay: 500,
+        color: "text-emerald-400",
+      },
+      {
+        text: "[Python API] Spawning Win32 process host...",
+        delay: 400,
+        color: "text-blue-400",
+      },
+      {
+        text: "[Python API] Service listening on http://127.0.0.1:8000",
+        delay: 300,
+        color: "text-blue-400",
+      },
+      {
+        text: "[Electron] Compiling Electron main thread...",
+        delay: 400,
+        color: "text-purple-400",
+      },
+      {
+        text: "[Electron] Electron window opened (PID: 12480)",
+        delay: 300,
+        color: "text-purple-400",
+      },
+      {
+        text: "[Electron] Connected to Docksy REST backend.",
+        delay: 200,
+        color: "text-purple-400",
+      },
+      {
+        text: "✓ Watch mode active. Live reload initialized.",
+        delay: 200,
+        color: "text-emerald-400 font-bold",
+      },
+    ],
+  },
+  "package.sh": {
+    language: "bash",
+    runnable: true,
+    command: "npm run package",
+    content: `#!/bin/bash
+# Package Docksy into a standalone executable and NSIS installer
+# 1. Export static Next.js application
+# 2. Package Python engine using PyInstaller sidecar
+# 3. Bundle desktop app using electron-builder
+npm run package`,
+    simulation: [
+      { text: "$ npm run package", delay: 300, type: "command" },
+      { text: "Exporting Next.js frontend (static site)...", delay: 400 },
+      {
+        text: "✓ Static files exported to ./dist",
+        delay: 600,
+        color: "text-emerald-400",
+      },
+      {
+        text: "Bundling Python Win32 COM API engine via PyInstaller...",
+        delay: 500,
+      },
+      {
+        text: "pyinstaller --onefile --noconsole --name docksy-engine api.py",
+        delay: 200,
+        color: "text-zinc-500",
+      },
+      {
+        text: "✓ Python binary created: dist/docksy-engine.exe",
+        delay: 1200,
+        color: "text-emerald-400",
+      },
+      { text: "Packaging Electron app with electron-builder...", delay: 400 },
+      {
+        text: "Target: Windows (nsis / portable)",
+        delay: 100,
+        color: "text-zinc-400",
+      },
+      { text: "Building NSIS installer package...", delay: 800 },
+      {
+        text: "✓ Package created: dist-packaged/Docksy.Setup.1.0.2.exe",
+        delay: 1000,
+        color: "text-emerald-400",
+      },
+      {
+        text: "✓ Packaging pipeline completed successfully!",
+        delay: 200,
+        color: "text-emerald-400 font-bold",
+      },
+    ],
+  },
+};
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState("hero");
@@ -34,22 +249,267 @@ export default function Home() {
     "chaos" | "restoring" | "ordered"
   >("chaos");
   const [activeSimulatorTab, setActiveSimulatorTab] = useState<
-    "capture" | "restore" | "schedule"
-  >("capture");
+    "dashboard" | "workspaces" | "snapshots" | "schedule" | "settings"
+  >("dashboard");
   const [simulatorStatus, setSimulatorStatus] = useState<
     "idle" | "capturing" | "restoring" | "success"
   >("idle");
   const [capturedWorkspaces, setCapturedWorkspaces] = useState<
-    Array<{ name: string; time: string; count: number }>
+    Array<{
+      id: number;
+      name: string;
+      time: string;
+      count: number;
+      favorite: boolean;
+    }>
   >([
-    { name: "Frontend Development", time: "2 mins ago", count: 8 },
-    { name: "Production Debugging", time: "1 hour ago", count: 12 },
-    { name: "Daily Standup Routine", time: "Yesterday", count: 4 },
+    {
+      id: 1,
+      name: "Frontend Development",
+      time: "2 mins ago",
+      count: 8,
+      favorite: true,
+    },
+    {
+      id: 2,
+      name: "Production Debugging",
+      time: "1 hour ago",
+      count: 12,
+      favorite: false,
+    },
+    {
+      id: 3,
+      name: "Daily Standup Routine",
+      time: "Yesterday",
+      count: 4,
+      favorite: true,
+    },
   ]);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [activeConsoleTab, setActiveConsoleTab] = useState<
-    "setup" | "build" | "logs"
-  >("setup");
+  const [selectedDevFile, setSelectedDevFile] =
+    useState<keyof typeof DEV_FILES>("PREREQUISITES.md");
+  const [terminalOutput, setTerminalOutput] = useState<
+    Array<{ text: string; color?: string; type?: "command" | "normal" }>
+  >([
+    {
+      text: "docksy-shell v1.0.2 ready. Select a script and click 'Run Script' to execute.",
+      color: "text-zinc-500",
+    },
+  ]);
+  const [terminalIsRunning, setTerminalIsRunning] = useState(false);
+  const terminalIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const terminalEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [terminalOutput]);
+
+  useEffect(() => {
+    return () => {
+      if (terminalIntervalRef.current) {
+        clearTimeout(terminalIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const runTerminalSimulation = (fileKey: keyof typeof DEV_FILES) => {
+    if (terminalIsRunning) return;
+    setTerminalIsRunning(true);
+
+    const file = DEV_FILES[fileKey];
+    const simulation = file.simulation;
+    if (!file.runnable || !simulation || !file.command) {
+      setTerminalIsRunning(false);
+      return;
+    }
+
+    setTerminalOutput([
+      {
+        text: `Running: ${file.command}`,
+        color: "text-zinc-400 font-bold",
+        type: "command",
+      },
+    ]);
+
+    let stepIndex = 0;
+    const runNextStep = () => {
+      if (stepIndex >= simulation.length) {
+        setTerminalIsRunning(false);
+        return;
+      }
+
+      const step = simulation[stepIndex];
+      setTerminalOutput((prev) => [
+        ...prev,
+        {
+          text: step.text,
+          color: step.color || "text-zinc-300",
+          type: (step.type || "normal") as "command" | "normal",
+        },
+      ]);
+      stepIndex++;
+
+      terminalIntervalRef.current = setTimeout(runNextStep, step.delay || 300);
+    };
+
+    terminalIntervalRef.current = setTimeout(runNextStep, 500);
+  };
+
+  const clearTerminal = () => {
+    if (terminalIsRunning) return;
+    setTerminalOutput([
+      {
+        text: "Console buffer cleared. Select a file to inspect or execute.",
+        color: "text-zinc-500",
+      },
+    ]);
+  };
+
+  const renderCodeWithHighlight = (filename: string, content: string) => {
+    const lines = content.split("\n");
+    return lines.map((line, idx) => {
+      if (filename.endsWith(".sh")) {
+        if (line.startsWith("#")) {
+          return (
+            <div key={idx} className="font-mono text-zinc-500 whitespace-pre">
+              <span className="text-zinc-600 select-none mr-4 text-right inline-block w-6">
+                {idx + 1}
+              </span>
+              {line}
+            </div>
+          );
+        }
+        let renderedLine: React.ReactNode = line;
+        if (
+          line.startsWith("git clone") ||
+          line.startsWith("npm ") ||
+          line.startsWith("cd ") ||
+          line.startsWith("pip install")
+        ) {
+          const parts = line.split(" ");
+          renderedLine = parts.map((part, pidx) => {
+            if (
+              part === "git" ||
+              part === "npm" ||
+              part === "cd" ||
+              part === "pip"
+            ) {
+              return (
+                <span key={pidx} className="text-blue-400 font-bold">
+                  {part}{" "}
+                </span>
+              );
+            }
+            if (part === "clone" || part === "install" || part === "run") {
+              return (
+                <span key={pidx} className="text-purple-400">
+                  {part}{" "}
+                </span>
+              );
+            }
+            return (
+              <span key={pidx} className="text-zinc-300">
+                {part}{" "}
+              </span>
+            );
+          });
+        }
+        return (
+          <div key={idx} className="font-mono text-zinc-300 whitespace-pre">
+            <span className="text-zinc-600 select-none mr-4 text-right inline-block w-6">
+              {idx + 1}
+            </span>
+            {renderedLine}
+          </div>
+        );
+      } else {
+        if (line.startsWith("#")) {
+          return (
+            <div
+              key={idx}
+              className="font-mono text-white font-bold whitespace-pre"
+            >
+              <span className="text-zinc-600 select-none mr-4 text-right inline-block w-6">
+                {idx + 1}
+              </span>
+              <span className="text-blue-400">{line}</span>
+            </div>
+          );
+        }
+        if (line.startsWith("-")) {
+          return (
+            <div key={idx} className="font-mono text-zinc-300 whitespace-pre">
+              <span className="text-zinc-600 select-none mr-4 text-right inline-block w-6">
+                {idx + 1}
+              </span>
+              <span className="text-purple-400">-</span> {line.substring(2)}
+            </div>
+          );
+        }
+        return (
+          <div key={idx} className="font-mono text-zinc-400 whitespace-pre">
+            <span className="text-zinc-600 select-none mr-4 text-right inline-block w-6">
+              {idx + 1}
+            </span>
+            {line}
+          </div>
+        );
+      }
+    });
+  };
+
+  // Redesign: Mock state for schedules, ignored apps, and general preferences
+  const [schedules, setSchedules] = useState([
+    {
+      id: 1,
+      workspaceId: 1,
+      workspaceName: "Frontend Development",
+      triggerType: "time",
+      time: "09:00",
+      days: "Mon, Tue, Wed, Thu, Fri",
+      enabled: true,
+    },
+    {
+      id: 2,
+      workspaceId: 3,
+      workspaceName: "Daily Standup Routine",
+      triggerType: "startup",
+      time: "",
+      days: "",
+      enabled: true,
+    },
+  ]);
+  const [ignoredApps, setIgnoredApps] = useState([
+    { id: 1, name: "discord.exe" },
+    { id: 2, name: "spotify.exe" },
+  ]);
+  const [newIgnoreApp, setNewIgnoreApp] = useState("");
+  const [generalSettings, setGeneralSettings] = useState({
+    launchAtStartup: true,
+    minimizeToTray: true,
+    notifications: true,
+    autoSnapshots: true,
+    snapshotInterval: "60",
+    restoreDelay: 1000,
+    skipRunning: true,
+  });
+
+  // Schedule Form State
+  const [scheduleWorkspaceId, setScheduleWorkspaceId] = useState<number>(1);
+  const [scheduleTriggerType, setScheduleTriggerType] = useState<
+    "time" | "startup"
+  >("time");
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [scheduleSelectedDays, setScheduleSelectedDays] = useState<string[]>([
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+  ]);
+  const [scheduleEnabled, setScheduleEnabled] = useState(true);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [faqActiveIndex, setFaqActiveIndex] = useState<number | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
@@ -121,34 +581,112 @@ export default function Home() {
   };
 
   // Simulate dashboard capture/restore actions
-  const triggerSimulatorAction = (action: "capture" | "restore") => {
+  const triggerSimulatorAction = (
+    action: "capture" | "restore",
+    nameArg?: string,
+  ) => {
     if (simulatorStatus !== "idle") return;
 
     if (action === "capture") {
       setSimulatorStatus("capturing");
       setTimeout(() => {
+        const workspaceName = (nameArg || newWorkspaceName).trim();
         const newName =
-          newWorkspaceName.trim() ||
+          workspaceName ||
           `Workspace Snapshot #${capturedWorkspaces.length + 1}`;
+        const newId = maxId(capturedWorkspaces) + 1;
         setCapturedWorkspaces([
           {
+            id: newId,
             name: newName,
             time: "Just now",
             count: Math.floor(Math.random() * 6) + 4,
+            favorite: false,
           },
           ...capturedWorkspaces,
         ]);
         setNewWorkspaceName("");
         setSimulatorStatus("success");
-        setTimeout(() => setSimulatorStatus("idle"), 2000);
-      }, 1800);
+        setTimeout(() => setSimulatorStatus("idle"), 1500);
+      }, 1500);
     } else {
       setSimulatorStatus("restoring");
       setTimeout(() => {
         setSimulatorStatus("success");
-        setTimeout(() => setSimulatorStatus("idle"), 2000);
-      }, 2000);
+        setTimeout(() => setSimulatorStatus("idle"), 1500);
+      }, 1500);
     }
+  };
+
+  const maxId = (arr: any[]) => {
+    return arr.reduce((max, item) => (item.id > max ? item.id : max), 0);
+  };
+
+  const handleFavoriteToggle = (id: number) => {
+    setCapturedWorkspaces(
+      capturedWorkspaces.map((w) =>
+        w.id === id ? { ...w, favorite: !w.favorite } : w,
+      ),
+    );
+  };
+
+  const handleDuplicateWorkspace = (id: number) => {
+    const original = capturedWorkspaces.find((w) => w.id === id);
+    if (!original) return;
+    const newId = maxId(capturedWorkspaces) + 1;
+    setCapturedWorkspaces([
+      {
+        id: newId,
+        name: `${original.name} (Copy)`,
+        time: "Just now",
+        count: original.count,
+        favorite: false,
+      },
+      ...capturedWorkspaces,
+    ]);
+  };
+
+  const handleDeleteWorkspace = (id: number) => {
+    setCapturedWorkspaces(capturedWorkspaces.filter((w) => w.id !== id));
+    setSchedules(schedules.filter((s) => s.workspaceId !== id));
+  };
+
+  const handleAddSchedule = (e: React.FormEvent) => {
+    e.preventDefault();
+    const ws = capturedWorkspaces.find((w) => w.id === scheduleWorkspaceId);
+    if (!ws) return;
+    const newId = maxId(schedules) + 1;
+    setSchedules([
+      ...schedules,
+      {
+        id: newId,
+        workspaceId: scheduleWorkspaceId,
+        workspaceName: ws.name,
+        triggerType: scheduleTriggerType,
+        time: scheduleTriggerType === "time" ? scheduleTime : "",
+        days:
+          scheduleTriggerType === "time" ? scheduleSelectedDays.join(", ") : "",
+        enabled: scheduleEnabled,
+      },
+    ]);
+  };
+
+  const handleDeleteSchedule = (id: number) => {
+    setSchedules(schedules.filter((s) => s.id !== id));
+  };
+
+  const handleAddIgnoredApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newIgnoreApp.trim()) return;
+    let name = newIgnoreApp.trim().toLowerCase();
+    if (!name.endsWith(".exe")) name += ".exe";
+    const newId = maxId(ignoredApps) + 1;
+    setIgnoredApps([...ignoredApps, { id: newId, name }]);
+    setNewIgnoreApp("");
+  };
+
+  const handleDeleteIgnoredApp = (id: number) => {
+    setIgnoredApps(ignoredApps.filter((a) => a.id !== id));
   };
 
   // Direct download handler simulating speed
@@ -289,7 +827,7 @@ export default function Home() {
             },
             {
               id: "console",
-              label: "CLI Setup",
+              label: "Developer Setup",
               icon: <TerminalIcon className="w-4 h-4" />,
             },
             {
@@ -578,7 +1116,7 @@ export default function Home() {
                   <div className="flex items-center gap-1.5">
                     <Database className="w-3.5 h-3.5 text-zinc-500" />
                     <span className="text-[10px] text-zinc-400 font-mono">
-                      SQLite: docksy_snapshots.db
+                      JSON: ~/.docksy/docksy.json
                     </span>
                   </div>
                 </div>
@@ -725,7 +1263,7 @@ export default function Home() {
                 href="#console"
                 className="group flex items-center justify-center gap-2 px-8 py-4 bg-zinc-900 border border-white/5 hover:border-white/15 text-zinc-300 font-semibold rounded-2xl hover:bg-zinc-800/80 transition-all duration-300 text-sm"
               >
-                <span>Read CLI Setup</span>
+                <span>Developer Setup</span>
                 <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:translate-x-1 transition-all duration-200" />
               </a>
             </motion.div>
@@ -790,19 +1328,29 @@ export default function Home() {
                   <div className="space-y-1">
                     {[
                       {
-                        key: "capture",
-                        label: "New Snapshot",
+                        key: "dashboard",
+                        label: "Dashboard",
                         icon: <Layout className="w-4 h-4" />,
                       },
                       {
-                        key: "restore",
-                        label: "Saved Snapshots",
-                        icon: <Database className="w-4 h-4" />,
+                        key: "workspaces",
+                        label: "Workspaces",
+                        icon: <Sparkles className="w-4 h-4" />,
+                      },
+                      {
+                        key: "snapshots",
+                        label: "Snapshots",
+                        icon: <RefreshCw className="w-4 h-4" />,
                       },
                       {
                         key: "schedule",
-                        label: "Scheduler Config",
+                        label: "Schedule",
                         icon: <Calendar className="w-4 h-4" />,
+                      },
+                      {
+                        key: "settings",
+                        label: "Settings",
+                        icon: <Settings className="w-4 h-4" />,
                       },
                     ].map((tab) => (
                       <button
@@ -821,208 +1369,658 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="mt-8 pt-4 border-t border-white/5 flex items-center gap-3 text-zinc-500">
-                  <Settings className="w-4 h-4" />
-                  <span className="text-[10px] font-mono">SYSTEM SETTINGS</span>
+                <div className="mt-8 pt-4 border-t border-white/5 flex flex-col gap-1 text-zinc-500">
+                  <div className="text-[10px] font-bold text-zinc-400">
+                    Docksy Desktop
+                  </div>
+                  <div className="text-[9px] font-mono text-zinc-600">
+                    v1.0.1 (Local Only)
+                  </div>
                 </div>
               </div>
 
               {/* Dashboard Content */}
               <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between bg-zinc-950/20">
                 <AnimatePresence mode="wait">
-                  {/* Tab content: Capture Snapshot */}
-                  {activeSimulatorTab === "capture" && (
+                  {/* Tab content: Dashboard */}
+                  {activeSimulatorTab === "dashboard" && (
                     <motion.div
-                      key="capture-tab"
+                      key="dashboard-tab"
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
                       className="space-y-6 flex-1 flex flex-col justify-between"
                     >
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-5 h-5 text-primary" />
+                      <div className="space-y-6">
+                        <div className="flex flex-col gap-1">
                           <h3 className="text-lg font-bold text-white">
-                            Capture Active Workspace
+                            Welcome to Docksy
                           </h3>
+                          <p className="text-zinc-400 text-xs">
+                            Save and restore your complete Windows desktop
+                            layouts instantly.
+                          </p>
                         </div>
-                        <p className="text-zinc-400 text-xs sm:text-sm">
-                          Docksy queries active Win32 bounds and browser
-                          instances, storing layout coordinate vectors directly
-                          into SQLite.
-                        </p>
 
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-mono text-zinc-500 uppercase">
-                            Snapshot Label
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. VS Code Stack + Database Manager"
-                            value={newWorkspaceName}
-                            onChange={(e) =>
-                              setNewWorkspaceName(e.target.value)
-                            }
-                            disabled={simulatorStatus === "capturing"}
-                            className="bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 text-white placeholder-zinc-600 transition-all duration-200"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          {/* Quick Save Card */}
+                          <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-xl space-y-3">
+                            <h4 className="text-xs font-bold text-zinc-200 flex items-center gap-2">
+                              <Layout className="w-3.5 h-3.5 text-primary" />
+                              Quick Save Workspace
+                            </h4>
+                            <p className="text-zinc-500 text-[10px] leading-relaxed">
+                              Captures all open window coordinates, paths, and
+                              explorer instances.
+                            </p>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                placeholder="e.g. Office, DSA, Gaming"
+                                value={newWorkspaceName}
+                                onChange={(e) =>
+                                  setNewWorkspaceName(e.target.value)
+                                }
+                                disabled={simulatorStatus === "capturing"}
+                                className="bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary/50 text-white placeholder-zinc-700 flex-1"
+                              />
+                              <button
+                                onClick={() =>
+                                  triggerSimulatorAction("capture")
+                                }
+                                disabled={
+                                  simulatorStatus !== "idle" ||
+                                  !newWorkspaceName.trim()
+                                }
+                                className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg disabled:opacity-50 transition-all duration-200"
+                              >
+                                {simulatorStatus === "capturing"
+                                  ? "Saving..."
+                                  : "Save Current"}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* System Status Card */}
+                          <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-xl space-y-3">
+                            <h4 className="text-xs font-bold text-zinc-200 flex items-center gap-2">
+                              <Globe className="w-3.5 h-3.5 text-primary" />
+                              System Status
+                            </h4>
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-zinc-400">
+                                Browser Extension:
+                              </span>
+                              <span className="bg-zinc-850 border border-white/10 px-2 py-0.5 rounded-full text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
+                                COMING SOON
+                              </span>
+                            </div>
+                            <p className="text-zinc-500 text-[10px] leading-relaxed">
+                              Browser tab capture is coming soon! (Awaiting Web
+                              Store publishing).
+                            </p>
+                            <div className="border-t border-white/5 pt-2 space-y-1.5">
+                              <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
+                                Connected Displays (2)
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] bg-zinc-950/40 px-2 py-1.5 rounded border border-white/5 text-zinc-400">
+                                <span>Display 1 (Primary)</span>
+                                <span className="font-mono text-[9px] text-zinc-500">
+                                  1920 × 1080
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] bg-zinc-950/40 px-2 py-1.5 rounded border border-white/5 text-zinc-400">
+                                <span>Display 2</span>
+                                <span className="font-mono text-[9px] text-zinc-500">
+                                  2560 × 1440
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Favorites quick list */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold text-zinc-200">
+                            Favorite Workspaces
+                          </h4>
+                          {capturedWorkspaces.filter((w) => w.favorite)
+                            .length === 0 ? (
+                            <div className="p-4 text-center bg-zinc-900/20 border border-dashed border-white/5 rounded-xl text-zinc-500 text-xs">
+                              No favorites yet. Toggle stars on your Workspaces
+                              tab to list them here.
+                            </div>
+                          ) : (
+                            <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                              {capturedWorkspaces
+                                .filter((w) => w.favorite)
+                                .map((w) => (
+                                  <div
+                                    key={w.id}
+                                    className="flex items-center justify-between p-2.5 bg-zinc-900 border border-white/5 rounded-xl"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-bold text-zinc-300">
+                                        {w.name}
+                                      </span>
+                                      <span className="text-[9px] text-zinc-500 mt-0.5">
+                                        Saved on {w.time} • {w.count} Apps
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() =>
+                                        triggerSimulatorAction("restore")
+                                      }
+                                      disabled={simulatorStatus !== "idle"}
+                                      className="px-3 py-1.5 bg-white/5 border border-white/5 text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] font-bold rounded-lg transition-all"
+                                    >
+                                      Restore
+                                    </button>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-white/5 pt-6">
+                      <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-4">
                         <span className="text-[11px] text-zinc-500 font-mono">
                           {simulatorStatus === "capturing"
                             ? "Querying Win32 APIs..."
-                            : "Ready to execute"}
+                            : simulatorStatus === "restoring"
+                              ? "Arranging layouts..."
+                              : "Engine Status: Online"}
                         </span>
-                        <button
-                          onClick={() => triggerSimulatorAction("capture")}
-                          disabled={simulatorStatus !== "idle"}
-                          className="flex items-center gap-2 px-5 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl disabled:opacity-50 transition-all duration-200"
-                        >
-                          {simulatorStatus === "capturing" ? (
+                        {simulatorStatus !== "idle" && (
+                          <div className="flex items-center gap-1.5 text-primary text-[11px] font-mono animate-pulse">
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          ) : simulatorStatus === "success" ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <Layout className="w-3.5 h-3.5" />
-                          )}
-                          <span>
-                            {simulatorStatus === "capturing"
-                              ? "Capturing State"
-                              : simulatorStatus === "success"
-                                ? "Captured Successfully"
-                                : "Execute Capture"}
-                          </span>
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Tab content: Saved Snapshots */}
-                  {activeSimulatorTab === "restore" && (
-                    <motion.div
-                      key="restore-tab"
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -5 }}
-                      className="space-y-6 flex-1 flex flex-col justify-between"
-                    >
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Database className="w-5 h-5 text-primary" />
-                          <h3 className="text-lg font-bold text-white">
-                            Local Snapshot Ledger
-                          </h3>
-                        </div>
-                        <p className="text-zinc-400 text-xs">
-                          Restore open workspaces from the local index ledger.
-                        </p>
-
-                        <div className="space-y-2.5 max-h-[180px] overflow-y-auto pr-2">
-                          {capturedWorkspaces.map((ws, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between p-3 bg-zinc-900 border border-white/5 rounded-xl hover:border-white/10 transition-all duration-200"
-                            >
-                              <div className="flex flex-col">
-                                <span className="text-xs font-bold text-zinc-200">
-                                  {ws.name}
-                                </span>
-                                <span className="text-[9px] text-zinc-500 font-mono mt-0.5">
-                                  {ws.count} application targets • {ws.time}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() =>
-                                  triggerSimulatorAction("restore")
-                                }
-                                disabled={simulatorStatus !== "idle"}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/5 text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] font-bold rounded-lg transition-all duration-150"
-                              >
-                                <Play className="w-2.5 h-2.5 fill-current" />
-                                <span>Restore</span>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t border-white/5 pt-6">
-                        <span className="text-[11px] text-zinc-500 font-mono">
-                          {simulatorStatus === "restoring"
-                            ? "Arranging layouts..."
-                            : "Ready"}
-                        </span>
-                        {simulatorStatus === "restoring" && (
-                          <div className="flex items-center gap-2 text-primary font-mono text-xs">
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Moving application processes...</span>
+                            <span>Processing...</span>
                           </div>
                         )}
                       </div>
                     </motion.div>
                   )}
 
-                  {/* Tab content: Scheduler */}
+                  {/* Tab content: Workspaces */}
+                  {activeSimulatorTab === "workspaces" && (
+                    <motion.div
+                      key="workspaces-tab"
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      className="space-y-4 flex-1 flex flex-col justify-between"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-1">
+                          <h3 className="text-lg font-bold text-white">
+                            Workspaces
+                          </h3>
+                          <p className="text-zinc-400 text-xs">
+                            Manage, duplicate, and restore your saved desktop
+                            configurations.
+                          </p>
+                        </div>
+
+                        {capturedWorkspaces.length === 0 ? (
+                          <div className="p-8 text-center bg-zinc-900/20 border border-dashed border-white/5 rounded-xl text-zinc-500 text-xs">
+                            No workspaces saved yet. Capture your first one from
+                            the Dashboard!
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                            {capturedWorkspaces.map((w) => (
+                              <div
+                                key={w.id}
+                                className="flex items-center justify-between p-3 bg-zinc-900 border border-white/5 rounded-xl"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    onClick={() => handleFavoriteToggle(w.id)}
+                                    className={`hover:scale-110 transition-transform ${w.favorite ? "text-amber-400" : "text-zinc-600 hover:text-zinc-400"}`}
+                                  >
+                                    <Sparkles className="w-4 h-4 fill-current" />
+                                  </button>
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-bold text-zinc-200">
+                                      {w.name}
+                                    </span>
+                                    <span className="text-[9px] text-zinc-500 mt-0.5">
+                                      Captured: {w.time} • {w.count} Apps
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() =>
+                                      triggerSimulatorAction("restore")
+                                    }
+                                    disabled={simulatorStatus !== "idle"}
+                                    className="px-2.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded-lg transition-all"
+                                  >
+                                    Restore
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleDuplicateWorkspace(w.id)
+                                    }
+                                    className="px-2 py-1.5 bg-zinc-850 hover:bg-zinc-800 text-zinc-300 text-[10px] font-bold rounded-lg border border-white/5 transition-all"
+                                  >
+                                    Duplicate
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteWorkspace(w.id)}
+                                    className="px-2 py-1.5 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-[10px] font-bold rounded-lg border border-red-500/10 transition-all"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border-t border-white/5 pt-4 text-[10px] text-zinc-500 font-mono">
+                        Total Saved Workspaces: {capturedWorkspaces.length}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Tab content: Snapshots */}
+                  {activeSimulatorTab === "snapshots" && (
+                    <motion.div
+                      key="snapshots-tab"
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      className="space-y-4 flex-1 flex flex-col justify-between"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-1">
+                          <h3 className="text-lg font-bold text-white">
+                            Snapshots
+                          </h3>
+                          <p className="text-zinc-400 text-xs">
+                            Access version history and automatic workspace
+                            saves.
+                          </p>
+                        </div>
+
+                        {/* Snapshot Control Card */}
+                        <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-xl space-y-3">
+                          <h4 className="text-xs font-bold text-zinc-200 flex items-center gap-2">
+                            <RefreshCw className="w-3.5 h-3.5 text-primary" />
+                            Snapshot Control
+                          </h4>
+                          <p className="text-zinc-500 text-[10px] leading-relaxed">
+                            Create a point-in-time restore point manually.
+                            Automatic snapshots are captured every interval (see
+                            Settings).
+                          </p>
+                          <button
+                            onClick={() =>
+                              triggerSimulatorAction(
+                                "capture",
+                                "Manual Snapshot",
+                              )
+                            }
+                            disabled={simulatorStatus !== "idle"}
+                            className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg transition-all"
+                          >
+                            Capture Snapshot Now
+                          </button>
+                        </div>
+
+                        {/* Snapshots Saved History List */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold text-zinc-300">
+                            Saved History
+                          </h4>
+                          <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                            <div className="flex items-center justify-between p-2.5 bg-zinc-900 border border-white/5 rounded-xl">
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-zinc-300">
+                                    Auto Snapshot
+                                  </span>
+                                  <span className="bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded text-[8px] font-bold">
+                                    AUTO
+                                  </span>
+                                </div>
+                                <span className="text-[9px] text-zinc-500 mt-0.5">
+                                  Captured: Just now • 6 Apps
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    triggerSimulatorAction("restore")
+                                  }
+                                  disabled={simulatorStatus !== "idle"}
+                                  className="px-2 py-1 bg-white/5 hover:bg-white/10 text-zinc-300 text-[9px] font-bold rounded"
+                                >
+                                  Restore
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between p-2.5 bg-zinc-900 border border-white/5 rounded-xl">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-zinc-300">
+                                  Pre-Update Restore Point
+                                </span>
+                                <span className="text-[9px] text-zinc-500 mt-0.5">
+                                  Captured: 1 hour ago • 10 Apps
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    triggerSimulatorAction("restore")
+                                  }
+                                  disabled={simulatorStatus !== "idle"}
+                                  className="px-2 py-1 bg-white/5 hover:bg-white/10 text-zinc-300 text-[9px] font-bold rounded"
+                                >
+                                  Restore
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-white/5 pt-4 text-[10px] text-zinc-500 font-mono">
+                        Snapshots are stored in local JSON ledger.
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Tab content: Schedule */}
                   {activeSimulatorTab === "schedule" && (
                     <motion.div
                       key="schedule-tab"
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
-                      className="space-y-6 flex-1 flex flex-col justify-between"
+                      className="space-y-4 flex-1 flex flex-col justify-between"
                     >
                       <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-5 h-5 text-primary" />
+                        <div className="flex flex-col gap-1">
                           <h3 className="text-lg font-bold text-white">
-                            Scheduled Automation
+                            Schedule
                           </h3>
+                          <p className="text-zinc-400 text-xs">
+                            Automate your environment restoration by time or
+                            Windows startup.
+                          </p>
                         </div>
-                        <p className="text-zinc-400 text-xs sm:text-sm">
-                          Configure layout restores triggered automatically at
-                          specific hours, calendars events, or PC boot events.
-                        </p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="p-3 bg-zinc-900/60 border border-white/5 rounded-xl flex items-center justify-between">
-                            <div className="flex flex-col">
-                              <span className="text-xs font-semibold text-zinc-200">
-                                On Boot Restoration
-                              </span>
-                              <span className="text-[9px] text-zinc-500 mt-0.5">
-                                Launches default stack on startup
-                              </span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Add Trigger Card */}
+                          <form
+                            onSubmit={handleAddSchedule}
+                            className="bg-zinc-900/60 border border-white/5 p-4 rounded-xl space-y-3 text-xs"
+                          >
+                            <h4 className="text-xs font-bold text-zinc-200 flex items-center gap-2">
+                              <Calendar className="w-3.5 h-3.5 text-primary" />
+                              Add Automation Trigger
+                            </h4>
+                            <div className="space-y-2">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[9px] text-zinc-500 uppercase font-mono">
+                                  Select Workspace
+                                </label>
+                                <select
+                                  value={scheduleWorkspaceId}
+                                  onChange={(e) =>
+                                    setScheduleWorkspaceId(
+                                      Number(e.target.value),
+                                    )
+                                  }
+                                  className="bg-zinc-950 border border-white/10 rounded px-2 py-1.5 focus:outline-none focus:border-primary/50 text-white"
+                                >
+                                  {capturedWorkspaces.map((w) => (
+                                    <option key={w.id} value={w.id}>
+                                      {w.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[9px] text-zinc-500 uppercase font-mono">
+                                  Trigger Type
+                                </label>
+                                <select
+                                  value={scheduleTriggerType}
+                                  onChange={(e) =>
+                                    setScheduleTriggerType(
+                                      e.target.value as any,
+                                    )
+                                  }
+                                  className="bg-zinc-950 border border-white/10 rounded px-2 py-1.5 focus:outline-none focus:border-primary/50 text-white"
+                                >
+                                  <option value="time">Time of Day</option>
+                                  <option value="startup">
+                                    Windows Startup / User Login
+                                  </option>
+                                </select>
+                              </div>
+                              {scheduleTriggerType === "time" && (
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-[9px] text-zinc-500 uppercase font-mono">
+                                    Time
+                                  </label>
+                                  <input
+                                    type="time"
+                                    value={scheduleTime}
+                                    onChange={(e) =>
+                                      setScheduleTime(e.target.value)
+                                    }
+                                    className="bg-zinc-950 border border-white/10 rounded px-2 py-1 focus:outline-none focus:border-primary/50 text-white font-mono"
+                                  />
+                                </div>
+                              )}
+                              <button
+                                type="submit"
+                                className="w-full py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded transition-all mt-2"
+                              >
+                                Save Trigger
+                              </button>
                             </div>
-                            <input
-                              type="checkbox"
-                              defaultChecked
-                              className="accent-primary"
-                            />
-                          </div>
+                          </form>
 
-                          <div className="p-3 bg-zinc-900/60 border border-white/5 rounded-xl flex items-center justify-between">
-                            <div className="flex flex-col">
-                              <span className="text-xs font-semibold text-zinc-200">
-                                Scheduled Trigger
-                              </span>
-                              <span className="text-[9px] text-zinc-500 mt-0.5">
-                                Trigger standard stack at 09:00 AM
-                              </span>
+                          {/* Active Triggers Card */}
+                          <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-xl space-y-3">
+                            <h4 className="text-xs font-bold text-zinc-200 flex items-center gap-2">
+                              <RefreshCw className="w-3.5 h-3.5 text-primary" />
+                              Active Triggers
+                            </h4>
+                            <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                              {schedules.map((s) => (
+                                <div
+                                  key={s.id}
+                                  className="p-2 bg-zinc-950 border border-white/5 rounded-lg flex justify-between items-center text-[10px]"
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-zinc-300">
+                                      Restore: {s.workspaceName}
+                                    </span>
+                                    <span className="text-[8px] text-zinc-500 mt-0.5">
+                                      {s.triggerType === "startup"
+                                        ? "On Windows Startup"
+                                        : `${s.time} (${s.days})`}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleDeleteSchedule(s.id)}
+                                    className="text-red-400 hover:text-red-300 font-bold px-1.5"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
                             </div>
-                            <input type="checkbox" className="accent-primary" />
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-white/5 pt-6 text-[10px] text-zinc-500 font-mono">
-                        <span>
-                          Restores mapped strictly locally via cron service
-                        </span>
-                        <span className="text-primary font-bold">
-                          SCHEDULER STATUS: ACTIVE
-                        </span>
+                      <div className="border-t border-white/5 pt-4 text-[10px] text-zinc-500 font-mono">
+                        Automations run locally via background daemon service.
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Tab content: Settings */}
+                  {activeSimulatorTab === "settings" && (
+                    <motion.div
+                      key="settings-tab"
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      className="space-y-4 flex-1 flex flex-col justify-between"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-1">
+                          <h3 className="text-lg font-bold text-white">
+                            Settings
+                          </h3>
+                          <p className="text-zinc-400 text-xs">
+                            Customize restoration rules, auto-snapshots, and
+                            exclude applications.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                          {/* Left Column Settings */}
+                          <div className="space-y-3">
+                            {/* General */}
+                            <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-xl space-y-2">
+                              <h4 className="text-xs font-bold text-zinc-200">
+                                Preferences
+                              </h4>
+                              <div className="space-y-2 text-[10px] text-zinc-400">
+                                <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={generalSettings.launchAtStartup}
+                                    onChange={(e) =>
+                                      setGeneralSettings({
+                                        ...generalSettings,
+                                        launchAtStartup: e.target.checked,
+                                      })
+                                    }
+                                    className="accent-primary"
+                                  />
+                                  Launch Docksy when Windows starts
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={generalSettings.minimizeToTray}
+                                    onChange={(e) =>
+                                      setGeneralSettings({
+                                        ...generalSettings,
+                                        minimizeToTray: e.target.checked,
+                                      })
+                                    }
+                                    className="accent-primary"
+                                  />
+                                  Minimize to System Tray on window close
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={generalSettings.notifications}
+                                    onChange={(e) =>
+                                      setGeneralSettings({
+                                        ...generalSettings,
+                                        notifications: e.target.checked,
+                                      })
+                                    }
+                                    className="accent-primary"
+                                  />
+                                  Show desktop notifications on restore
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Restore Engine */}
+                            <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-xl space-y-2.5">
+                              <h4 className="text-xs font-bold text-zinc-200">
+                                Restore Engine
+                              </h4>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[9px] text-zinc-500 uppercase font-mono">
+                                  App Launch Delay (ms)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={generalSettings.restoreDelay}
+                                  onChange={(e) =>
+                                    setGeneralSettings({
+                                      ...generalSettings,
+                                      restoreDelay: Number(e.target.value),
+                                    })
+                                  }
+                                  className="bg-zinc-950 border border-white/10 rounded px-2 py-1 text-white font-mono text-[10px] w-20"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Exclude List */}
+                          <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-xl space-y-3 flex flex-col">
+                            <h4 className="text-xs font-bold text-zinc-200">
+                              Ignore Applications List
+                            </h4>
+                            <p className="text-zinc-500 text-[9px] leading-relaxed">
+                              Docksy will exclude these applications from being
+                              captured or restored.
+                            </p>
+                            <form
+                              onSubmit={handleAddIgnoredApp}
+                              className="flex gap-2"
+                            >
+                              <input
+                                type="text"
+                                placeholder="e.g. discord.exe"
+                                value={newIgnoreApp}
+                                onChange={(e) =>
+                                  setNewIgnoreApp(e.target.value)
+                                }
+                                className="bg-zinc-950 border border-white/10 rounded px-2.5 py-1 text-[10px] text-white placeholder-zinc-700 flex-1 focus:outline-none"
+                              />
+                              <button
+                                type="submit"
+                                className="px-2.5 py-1 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded"
+                              >
+                                Exclude
+                              </button>
+                            </form>
+                            <div className="border border-white/5 rounded-lg p-2 bg-zinc-950/40 space-y-1 max-h-[110px] overflow-y-auto flex-1">
+                              {ignoredApps.map((app) => (
+                                <div
+                                  key={app.id}
+                                  className="flex justify-between items-center px-2 py-1 bg-zinc-900 border border-white/5 rounded text-[9px] text-zinc-300"
+                                >
+                                  <span>{app.name}</span>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteIgnoredApp(app.id)
+                                    }
+                                    className="text-red-400 hover:text-red-300"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-white/5 pt-4 text-[10px] text-zinc-500 font-mono">
+                        Settings are auto-saved to docksy.json file.
                       </div>
                     </motion.div>
                   )}
@@ -1120,7 +2118,7 @@ export default function Home() {
                 </h3>
                 <p className="text-zinc-400 text-xs">
                   Your coordinates, URL buffers, and app configs save directly
-                  into a lightweight, secure offline SQLite ledger. Zero cloud
+                  into a lightweight, secure offline JSON ledger. Zero cloud
                   dependency.
                 </p>
               </div>
@@ -1417,270 +2415,229 @@ export default function Home() {
           id="console"
           className="w-full max-w-6xl py-24 px-6 snap-section"
         >
-          <div className="text-center mb-16">
-            <span className="text-primary text-xs font-bold uppercase tracking-wider">
-              Installation Workspace
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-2">
-              CLI Build Playground
-            </h2>
-            <p className="text-zinc-500 text-sm sm:text-base max-w-xl mx-auto mt-2">
-              Review setup processes or compile Docksy modules locally using our
-              console preview.
-            </p>
+          <div className="mb-12 border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                Developer Build Playground
+              </h2>
+              <p className="text-zinc-400 text-sm sm:text-base mt-2 max-w-2xl">
+                Explore the prerequisites, run local dev builds, and package
+                Docksy installers with our interactive shell simulation.
+              </p>
+            </div>
+            <div className="text-zinc-500 font-mono text-sm tracking-wider hidden md:block">
+              // SECTION_05 // SETUP_WORKSPACE
+            </div>
           </div>
 
-          <div className="w-full bg-surface-card border border-white/5 rounded-2xl overflow-hidden shadow-2xl dock-glow">
-            {/* Integration Hub Control Bar */}
-            <div className="bg-zinc-900/60 px-5 py-3.5 border-b border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-                  <Settings className="w-4 h-4" />
+          <div className="w-full bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex flex-col">
+            {/* Editor Window Header Bar */}
+            <div className="bg-zinc-900 px-4 py-2 border-b border-zinc-800 flex items-center justify-between gap-4 h-11 select-none">
+              {/* Window dots & active tab titles */}
+              <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="w-3 h-3 rounded-full bg-zinc-800" />
+                  <div className="w-3 h-3 rounded-full bg-zinc-800" />
+                  <div className="w-3 h-3 rounded-full bg-zinc-800" />
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                    Integration Pipeline
-                  </h3>
-                  <span className="text-[9px] text-zinc-500 font-mono block">
-                    docksy-setup-manager v1.0.2
-                  </span>
+
+                {/* Active Tabs */}
+                <div className="flex items-center gap-1">
+                  {(
+                    Object.keys(DEV_FILES) as Array<keyof typeof DEV_FILES>
+                  ).map((fileKey) => {
+                    const isActive = selectedDevFile === fileKey;
+                    return (
+                      <button
+                        key={fileKey}
+                        onClick={() => {
+                          if (!terminalIsRunning) {
+                            setSelectedDevFile(fileKey);
+                          }
+                        }}
+                        disabled={terminalIsRunning}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-t text-xs font-mono transition-all relative ${
+                          isActive
+                            ? "bg-zinc-950 text-white font-semibold border-t-2 border-primary"
+                            : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/20"
+                        }`}
+                      >
+                        {fileKey.endsWith(".md") ? (
+                          <FileText className="w-3.5 h-3.5 text-blue-400" />
+                        ) : (
+                          <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />
+                        )}
+                        <span>{fileKey}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 bg-zinc-950/60 p-1 rounded-lg border border-white/5">
-                {["setup", "build", "diagnostics"].map((tab) => (
+
+              {/* Action Buttons (Run) */}
+              <div className="shrink-0 flex items-center gap-2">
+                {DEV_FILES[selectedDevFile].runnable && (
                   <button
-                    key={tab}
-                    onClick={() =>
-                      setActiveConsoleTab(
-                        tab === "diagnostics" ? "logs" : (tab as any),
-                      )
-                    }
-                    className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all duration-200 ${
-                      activeConsoleTab === tab ||
-                      (activeConsoleTab === "logs" && tab === "diagnostics")
-                        ? "bg-white text-black shadow-sm"
-                        : "bg-transparent text-zinc-500 hover:text-zinc-300"
-                    }`}
+                    onClick={() => runTerminalSimulation(selectedDevFile)}
+                    disabled={terminalIsRunning}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-xs font-semibold transition-all disabled:opacity-50"
                   >
-                    {tab}
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>
+                      {terminalIsRunning ? "Running..." : "Run Script"}
+                    </span>
                   </button>
-                ))}
+                )}
               </div>
             </div>
 
-            {/* Integration Playground Screen */}
-            <div className="p-6 bg-zinc-950/50 min-h-[240px] text-zinc-300 flex flex-col justify-center">
-              <div className="space-y-2">
-                <AnimatePresence mode="wait">
-                  {activeConsoleTab === "setup" && (
-                    <motion.div
-                      key="cli-setup"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="space-y-4"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/5 p-4 rounded-xl border border-white/5">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                            <TerminalIcon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-white">
-                              NPM Client Package
-                            </h4>
-                            <span className="text-[10px] text-zinc-500 font-mono">
-                              npm install docksy-restorer --save
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() =>
-                            navigator.clipboard.writeText(
-                              "npm install docksy-restorer --save",
-                            )
+            {/* Editor Workspace Core */}
+            <div className="flex border-b border-zinc-800 bg-zinc-950">
+              {/* Explorer Sidebar */}
+              <div className="w-56 bg-zinc-900/40 border-r border-zinc-800 flex-col hidden md:flex select-none">
+                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 py-2 border-b border-zinc-800/60">
+                  Explorer
+                </div>
+                <div className="px-3 py-2 text-xs font-bold text-zinc-400 flex items-center gap-1.5">
+                  <Folder className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>DOCKSY</span>
+                </div>
+                <div className="flex flex-col">
+                  {(
+                    Object.keys(DEV_FILES) as Array<keyof typeof DEV_FILES>
+                  ).map((fileKey) => {
+                    const isActive = selectedDevFile === fileKey;
+                    return (
+                      <button
+                        key={fileKey}
+                        onClick={() => {
+                          if (!terminalIsRunning) {
+                            setSelectedDevFile(fileKey);
                           }
-                          className="px-3 py-1.5 bg-zinc-900 border border-white/10 text-zinc-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 self-start sm:self-center transition-all duration-200"
-                        >
-                          Copy Command
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-white/5 p-3 rounded-lg border border-white/5 flex items-center justify-between text-xs">
-                          <span className="text-zinc-500">Dependencies</span>
-                          <span className="text-emerald-400 font-semibold">
-                            18 Packages Resolved
-                          </span>
-                        </div>
-                        <div className="bg-white/5 p-3 rounded-lg border border-white/5 flex items-center justify-between text-xs">
-                          <span className="text-zinc-500">Browser Port</span>
-                          <span className="text-zinc-300 font-mono font-medium">
-                            localhost:5175
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {activeConsoleTab === "build" && (
-                    <motion.div
-                      key="cli-build"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="space-y-4"
-                    >
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <h4 className="text-sm font-bold text-white mb-3">
-                          Electron Package Pipeline
-                        </h4>
-                        <div className="space-y-2.5">
-                          {[
-                            {
-                              label: "Compile React Frontend (Vite)",
-                              status: "Completed",
-                              time: "1.2s",
-                            },
-                            {
-                              label: "Mount Python Win32 sidecar (PyInstaller)",
-                              status: "Completed",
-                              time: "2.8s",
-                            },
-                            {
-                              label: "Package Electron Native Bundler",
-                              status: "Completed",
-                              time: "0.9s",
-                            },
-                          ].map((step, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center justify-between text-xs"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-[10px] font-bold">
-                                  ✓
-                                </span>
-                                <span className="text-zinc-300">
-                                  {step.label}
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-zinc-500 font-mono">
-                                {step.time}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {activeConsoleTab === "logs" && (
-                    <motion.div
-                      key="cli-logs"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="space-y-4"
-                    >
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {[
-                          {
-                            title: "SQLite Database",
-                            status: "Online",
-                            desc: "Local vector DB mounted",
-                            color:
-                              "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-                          },
-                          {
-                            title: "Win32 Bindings",
-                            status: "Verified",
-                            desc: "DLL APIs responding",
-                            color:
-                              "text-purple-400 bg-purple-500/10 border-purple-500/20",
-                          },
-                          {
-                            title: "WebSocket Sync",
-                            status: "Active",
-                            desc: "Sync broker listening",
-                            color:
-                              "text-blue-400 bg-blue-500/10 border-blue-500/20",
-                          },
-                        ].map((stat, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-2"
-                          >
-                            <span className="text-[10px] text-zinc-500 font-mono uppercase block">
-                              {stat.title}
-                            </span>
-                            <div className="flex items-center justify-between">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${stat.color}`}
-                              >
-                                {stat.status}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-zinc-400 leading-tight">
-                              {stat.desc}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                        }}
+                        disabled={terminalIsRunning}
+                        className={`w-full flex items-center gap-2 px-6 py-2 text-xs text-left font-mono transition-all border-l-2 ${
+                          isActive
+                            ? "bg-zinc-800/30 text-white font-semibold border-primary"
+                            : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/10 border-transparent"
+                        }`}
+                      >
+                        {fileKey.endsWith(".md") ? (
+                          <FileText className="w-3.5 h-3.5 text-blue-400" />
+                        ) : (
+                          <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />
+                        )}
+                        <span>{fileKey}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Install and Repo Quick Actions */}
-              <div className="border-t border-white/5 pt-6 mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex flex-col text-left">
-                  <span className="text-xs font-bold text-white">
-                    Docksy.Setup.1.0.2.exe
+              {/* Editor Workspace (Code View) */}
+              <div className="flex-1 overflow-y-auto h-64 sm:h-72 p-4 sm:p-6 bg-zinc-950 select-text">
+                <div className="space-y-1">
+                  {renderCodeWithHighlight(
+                    selectedDevFile,
+                    DEV_FILES[selectedDevFile].content,
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Terminal Workspace */}
+            <div className="bg-zinc-950 flex flex-col h-48 sm:h-56">
+              {/* Terminal Tabs / Control Header */}
+              <div className="bg-zinc-900/60 px-4 py-1.5 border-b border-zinc-800 flex items-center justify-between text-xs select-none">
+                <div className="flex items-center gap-4">
+                  <span className="font-bold text-white border-b-2 border-primary py-1 px-1 font-mono text-[10px] tracking-wider uppercase">
+                    Terminal
                   </span>
-                  <span className="text-[10px] text-zinc-500 mt-0.5">
-                    Windows 10 / 11 • SQLite Core • ~45MB
+                  <span className="text-zinc-500 font-mono text-[10px] tracking-wider uppercase">
+                    Output
+                  </span>
+                  <span className="text-zinc-500 font-mono text-[10px] tracking-wider uppercase">
+                    Problems
                   </span>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <a
-                    href="#"
-                    onClick={startDownload}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition-all duration-200"
-                  >
-                    {downloadProgress !== null ? (
-                      <span className="text-[11px] font-bold">
-                        Downloading {downloadProgress}%
+                <button
+                  onClick={clearTerminal}
+                  disabled={terminalIsRunning}
+                  className="flex items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-all font-semibold font-mono text-[10px] disabled:opacity-50"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Clear</span>
+                </button>
+              </div>
+
+              {/* Terminal Logs Area */}
+              <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1.5 select-text bg-zinc-950/80">
+                {terminalOutput.map((line, idx) => (
+                  <div key={idx} className={line.color || "text-zinc-300"}>
+                    {line.type === "command" ? (
+                      <span className="text-blue-400 font-bold">
+                        {line.text}
                       </span>
                     ) : (
-                      <>
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Get Setup Wizard</span>
-                      </>
+                      line.text
                     )}
-                  </a>
-                  <a
-                    href="https://github.com/Mananwebdev160408/docksy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-zinc-900 border border-white/5 hover:border-white/10 hover:bg-zinc-800 text-zinc-300 text-xs font-bold rounded-xl transition-all duration-200"
+                  </div>
+                ))}
+                {terminalIsRunning && (
+                  <span className="inline-block w-1.5 h-3.5 bg-zinc-400 ml-1 animate-pulse" />
+                )}
+                <div ref={terminalEndRef} />
+              </div>
+            </div>
+
+            {/* Install and Repo Quick Actions */}
+            <div className="bg-zinc-900/60 p-4 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold text-white">
+                  Docksy.Setup.1.0.2.exe
+                </span>
+                <span className="text-[10px] text-zinc-500 mt-0.5">
+                  Windows 10 / 11 • JSON Core • ~45MB
+                </span>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <a
+                  href="#"
+                  onClick={startDownload}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-lg transition-all duration-200"
+                >
+                  {downloadProgress !== null ? (
+                    <span className="text-[11px] font-bold">
+                      Downloading {downloadProgress}%
+                    </span>
+                  ) : (
+                    <>
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Get Setup Wizard</span>
+                    </>
+                  )}
+                </a>
+                <a
+                  href="https://github.com/Mananwebdev160408/docksy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-800/80 border border-zinc-700/50 hover:border-zinc-600 text-zinc-300 text-xs font-bold rounded-lg transition-all duration-200"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-3.5 h-3.5"
                   >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="14"
-                      height="14"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-3.5 h-3.5"
-                    >
-                      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-                    </svg>
-                    <span>View GitHub</span>
-                  </a>
-                </div>
+                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                  </svg>
+                  <span>View GitHub</span>
+                </a>
               </div>
             </div>
           </div>
@@ -1741,7 +2698,7 @@ export default function Home() {
                       Data Storage Location
                     </td>
                     <td className="py-4 text-emerald-400 font-mono">
-                      SQLite (Strictly Offline)
+                      JSON File (Strictly Offline)
                     </td>
                     <td className="py-4 text-zinc-500 font-mono">
                       External Cloud Host
@@ -1789,7 +2746,7 @@ export default function Home() {
             {[
               {
                 q: "Where is Docksy's snapshot database stored?",
-                a: "Docksy stores all coordinate vectors, configuration settings, and browser tab logs inside a local SQLite database file at '%USERPROFILE%/.docksy/docksy.db'. This file never interacts with external host networks.",
+                a: "Docksy stores all coordinate vectors, configuration settings, and browser tab logs inside a local JSON database file at '%USERPROFILE%/.docksy/docksy.json'. This file never interacts with external host networks.",
               },
               {
                 q: "How does Docksy handle multiple monitor setups?",

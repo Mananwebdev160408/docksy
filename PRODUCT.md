@@ -25,7 +25,7 @@ Never spend another minute setting up your workspace. Docksy automates your dail
   2. Docksy captures complete workspaces (including window placements and browser tabs) with perfect fidelity.
   3. Docksy is local-first, privacy-respecting, and fast.
   4. Docksy is open source and easy to install.
-- Proof on hand: The open-source repository on GitHub, lightweight SQLite storage, and a native Win32 window management architecture.
+- Proof on hand: The open-source repository on GitHub, lightweight JSON storage, and a native Win32 window management architecture.
 
 ## Brand Personality
 Sleek Minimalist Light: Clean, modern, high-contrast, and professional. Uses stark off-whites, bold black ink, and a precise cobalt blue accent.
