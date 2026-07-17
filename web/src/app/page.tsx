@@ -180,23 +180,70 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-zinc-100 flex flex-col relative grid-bg-overlay">
-      <div className="absolute inset-0 ambient-glow pointer-events-none z-0" />
+    <div className="min-h-screen bg-neutral-bg text-zinc-100 flex flex-col relative grid-bg-overlay overflow-x-hidden">
+      {/* Background Decorative Glow Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Top/Hero Glow Orb */}
+        <motion.div
+          animate={{
+            scale: [1, 1.08, 1],
+            opacity: [0.55, 0.75, 0.55],
+            x: [0, 20, 0],
+            y: [0, -20, 0],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-primary/20 to-purple-600/10 blur-[135px] opacity-60"
+        />
+
+        {/* Mid Page Glow Orb (behind simulator) */}
+        <motion.div
+          animate={{
+            scale: [1, 1.05, 1],
+            opacity: [0.4, 0.55, 0.4],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+          className="absolute top-[35%] left-1/4 w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px] opacity-45"
+        />
+
+        {/* Lower Page Glow Orb (behind specs/faq) */}
+        <motion.div
+          animate={{
+            scale: [1, 1.08, 1],
+            opacity: [0.35, 0.5, 0.35],
+            x: [0, -30, 0],
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute bottom-[10%] right-1/4 w-[800px] h-[800px] rounded-full bg-purple-600/10 blur-[150px] opacity-40"
+        />
+      </div>
 
       {/* Floating Navigation Dock */}
-      <nav className="fixed left-6 top-1/2 -translate-y-1/2 z-50 hidden lg:flex flex-col items-center py-6 px-4 bg-black/60 backdrop-blur-xl border border-white/5 rounded-3xl gap-8 dock-glow max-h-[85vh]">
+      <nav className="fixed left-6 top-1/2 -translate-y-1/2 z-50 hidden lg:flex flex-col items-center py-5 px-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-full gap-4.5 dock-glow max-h-[85vh] shadow-[0_0_30px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)]">
         {/* App Logo */}
         <a
           href="#hero"
-          className="group relative flex items-center justify-center w-10 h-10 bg-primary/10 rounded-xl border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all duration-300"
+          className="group relative flex items-center justify-center w-9 h-9 bg-transparent rounded-full border border-transparent hover:bg-white/5 hover:border-white/10 transition-all duration-300"
         >
           <motion.div
             animate={{ rotate: layoutState === "ordered" ? 360 : 0 }}
             transition={{ duration: 1 }}
           >
             <svg
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="#1f62ff"
@@ -209,16 +256,16 @@ export default function Home() {
               <path d="M14 15h7" />
             </svg>
           </motion.div>
-          <span className="absolute left-16 bg-zinc-900 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
+          <span className="absolute left-14 bg-zinc-950 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
             Docksy Core
           </span>
         </a>
 
         {/* Separator */}
-        <div className="w-8 h-[1px] bg-white/5" />
+        <div className="w-5 h-[1px] bg-white/10" />
 
         {/* Section Navigation */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3">
           {[
             {
               id: "hero",
@@ -255,34 +302,51 @@ export default function Home() {
               label: "Support & FAQ",
               icon: <Lock className="w-4 h-4" />,
             },
-          ].map((item) => (
-            <a
-              key={item.id}
-              href={`#${item.id}`}
-              className={`group relative flex items-center justify-center w-10 h-10 rounded-xl border transition-all duration-200 ${
-                activeSection === item.id
-                  ? "bg-primary text-white border-primary"
-                  : "bg-white/5 text-zinc-400 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/10"
-              }`}
-            >
-              {item.icon}
-              <span className="absolute left-16 bg-zinc-900 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
-                {item.label}
-              </span>
-            </a>
-          ))}
+          ].map((item) => {
+            const isActive = activeSection === item.id;
+            return (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={`group relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300 z-10 ${
+                  isActive
+                    ? "text-black font-semibold"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                {/* Slidable background highlight */}
+                {isActive && (
+                  <motion.span
+                    layoutId="activeDockIndicator"
+                    className="absolute inset-0 bg-white rounded-full -z-10 shadow-sm"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                {/* Hover outline matching Cosmos sign-in button */}
+                {!isActive && (
+                  <span className="absolute inset-0 rounded-full border border-transparent group-hover:border-white/10 group-hover:bg-white/5 transition-all duration-300 -z-10" />
+                )}
+                
+                {item.icon}
+                <span className="absolute left-14 bg-zinc-950 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
+                  {item.label}
+                </span>
+              </a>
+            );
+          })}
         </div>
 
         {/* Separator */}
-        <div className="w-8 h-[1px] bg-white/5" />
+        <div className="w-5 h-[1px] bg-white/10" />
 
         {/* Action Utilities */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <a
             href="#"
             onClick={startDownload}
-            className="group relative flex items-center justify-center w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all duration-200"
+            className="group relative flex items-center justify-center w-9 h-9 bg-emerald-500/10 text-emerald-400 rounded-full transition-all duration-300 z-10"
           >
+            <span className="absolute inset-0 rounded-full border border-emerald-500/20 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/20 transition-all duration-300 -z-10" />
             {downloadProgress !== null ? (
               <span className="text-[10px] font-mono font-bold">
                 {downloadProgress}%
@@ -290,7 +354,7 @@ export default function Home() {
             ) : (
               <Download className="w-4 h-4" />
             )}
-            <span className="absolute left-16 bg-zinc-900 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
+            <span className="absolute left-14 bg-zinc-950 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
               Download Installer (.exe)
             </span>
           </a>
@@ -299,8 +363,9 @@ export default function Home() {
             href="https://github.com/Mananwebdev160408/docksy"
             target="_blank"
             rel="noopener noreferrer"
-            className="group relative flex items-center justify-center w-10 h-10 bg-white/5 border border-white/5 text-zinc-400 rounded-xl hover:text-white hover:bg-white/10 hover:border-white/10 transition-all duration-200"
+            className="group relative flex items-center justify-center w-9 h-9 text-zinc-400 rounded-full transition-all duration-300 z-10"
           >
+            <span className="absolute inset-0 rounded-full border border-transparent hover:border-white/10 hover:bg-white/5 transition-all duration-300 -z-10" />
             <svg
               viewBox="0 0 24 24"
               width="16"
@@ -314,7 +379,7 @@ export default function Home() {
             >
               <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
             </svg>
-            <span className="absolute left-16 bg-zinc-900 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
+            <span className="absolute left-14 bg-zinc-950 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
               Inspect Source Code
             </span>
           </a>
@@ -742,7 +807,7 @@ export default function Home() {
           </div>
 
           {/* Client Dashboard Mockup Wrapper */}
-          <div className="w-full bg-[#0c0d10] border border-white/5 rounded-2xl overflow-hidden shadow-2xl dock-glow">
+          <div className="w-full bg-surface-card border border-white/5 rounded-2xl overflow-hidden shadow-2xl dock-glow">
             {/* Window control bar */}
             <div className="bg-zinc-900/60 px-5 py-3 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1155,7 +1220,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center bg-[#0c0d10] border border-white/5 rounded-2xl p-8 sm:p-12 dock-glow">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center bg-surface-card border border-white/5 rounded-2xl p-8 sm:p-12 dock-glow">
             {/* Interactive Visualizer Map */}
             <div className="lg:col-span-2 flex flex-col justify-center gap-6">
               {[
@@ -1296,7 +1361,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="w-full bg-[#0c0d10] border border-white/5 rounded-2xl overflow-hidden shadow-2xl dock-glow">
+          <div className="w-full bg-surface-card border border-white/5 rounded-2xl overflow-hidden shadow-2xl dock-glow">
             {/* Console Control Bar */}
             <div className="bg-zinc-900/60 px-5 py-3 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1464,7 +1529,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="w-full bg-[#0c0d10] border border-white/5 rounded-2xl overflow-hidden shadow-2xl dock-glow p-6 sm:p-8">
+          <div className="w-full bg-surface-card border border-white/5 rounded-2xl overflow-hidden shadow-2xl dock-glow p-6 sm:p-8">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead>
