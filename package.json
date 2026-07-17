@@ -6,9 +6,9 @@
   "scripts": {
     "dev:frontend": "vite",
     "build:frontend": "tsc -p tsconfig.json && vite build",
-    "build:electron": "tsc -p tsconfig.electron.json && node -e \"const fs=require('fs'); fs.mkdirSync('dist-electron', {recursive:true}); fs.copyFileSync('src/assets/logo.png', 'dist-electron/logo.png')\"",
+    "build:electron": "tsc -p tsconfig.electron.json && node -e \"const fs=require('fs'); fs.mkdirSync('dist-electron', {recursive:true}); fs.copyFileSync('src/assets/logo.png', 'dist-electron/logo.png'); fs.copyFileSync('src/tray.html', 'dist-electron/tray.html')\"",
     "build:backend": "pyinstaller --onefile --noconsole --name engine --distpath backend/dist --workpath backend/build backend/engine.py --clean",
-    "dev": "node -e \"const fs=require('fs'); fs.mkdirSync('dist-electron', {recursive:true}); fs.copyFileSync('src/assets/logo.png', 'dist-electron/logo.png')\" && concurrently \"npm run dev:frontend\" \"tsc -p tsconfig.electron.json -w\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev": "node -e \"const fs=require('fs'); fs.mkdirSync('dist-electron', {recursive:true}); fs.copyFileSync('src/assets/logo.png', 'dist-electron/logo.png'); fs.copyFileSync('src/tray.html', 'dist-electron/tray.html')\" && concurrently \"npm run dev:frontend\" \"tsc -p tsconfig.electron.json -w\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "npm run build:frontend && npm run build:electron && npm run build:backend",
     "package": "npm run build && electron-builder"
   },

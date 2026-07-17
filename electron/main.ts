@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen } from 'electron';
 import * as path from 'path';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
@@ -6,6 +6,7 @@ import * as os from 'os';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let trayWindow: BrowserWindow | null = null;
 let pythonProcess: ChildProcess | null = null;
 let isQuitting = false;
 
@@ -93,6 +94,67 @@ function startPythonBackend() {
   });
 }
 
+function createTrayWindow() {
+  const iconPath = path.join(__dirname, 'logo.png');
+  trayWindow = new BrowserWindow({
+    width: 320,
+    height: 400,
+    show: false,
+    frame: false,
+    fullscreenable: false,
+    resizable: false,
+    transparent: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  trayWindow.loadFile(path.join(__dirname, 'tray.html'));
+
+  // Hide the window when it loses focus
+  trayWindow.on('blur', () => {
+    trayWindow?.hide();
+  });
+}
+
+function positionTrayWindow(bounds: any) {
+  if (!trayWindow) return;
+  
+  const { x, y, width, height } = bounds;
+  const windowBounds = trayWindow.getBounds();
+  const windowWidth = windowBounds.width;
+  const windowHeight = windowBounds.height;
+  
+  // Calculate horizontal position (center under/above tray icon)
+  let winX = Math.round(x + (width / 2) - (windowWidth / 2));
+  
+  // Calculate vertical position (above tray icon by default, assuming bottom taskbar)
+  let winY = Math.round(y - windowHeight);
+  
+  // Adjust if tray icon is at the top of screen
+  if (y < 200) {
+    winY = Math.round(y + height);
+  }
+  
+  // Bounds adjustments for screen edge overflows
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+  
+  if (winX + windowWidth > screenWidth) {
+    winX = screenWidth - windowWidth - 10;
+  }
+  if (winX < 0) {
+    winX = 10;
+  }
+  
+  trayWindow.setPosition(winX, winY, false);
+}
+
 function createTray() {
   const iconPath = path.join(__dirname, 'logo.png');
 
@@ -101,29 +163,28 @@ function createTray() {
     : nativeImage.createFromBuffer(Buffer.from(trayIconBase64, 'base64'));
 
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
-  
-  const contextMenu = Menu.buildFromTemplate([
-    { 
-      label: 'Open Docksy', 
-      click: () => {
-        mainWindow?.show();
-      } 
-    },
-    { type: 'separator' },
-    { 
-      label: 'Exit', 
-      click: () => {
-        isQuitting = true;
-        app.quit();
-      } 
-    }
-  ]);
-  
   tray.setToolTip('Docksy Workspace Restorer');
-  tray.setContextMenu(contextMenu);
+  
+  const toggleTrayWindow = (event: any, bounds: any) => {
+    if (!trayWindow) {
+      createTrayWindow();
+    }
+    
+    if (trayWindow?.isVisible()) {
+      trayWindow.hide();
+    } else {
+      positionTrayWindow(bounds);
+      trayWindow?.show();
+      trayWindow?.focus();
+    }
+  };
+
+  tray.on('click', toggleTrayWindow);
+  tray.on('right-click', toggleTrayWindow);
   
   tray.on('double-click', () => {
     mainWindow?.show();
+    mainWindow?.focus();
   });
 }
 
@@ -246,5 +307,11 @@ if (!gotTheLock) {
   ipcMain.handle('quit-app', () => {
     isQuitting = true;
     app.quit();
+  });
+
+  ipcMain.handle('open-main-window', () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+    trayWindow?.hide();
   });
 }
