@@ -326,7 +326,7 @@ export default function Home() {
                 {!isActive && (
                   <span className="absolute inset-0 rounded-full border border-transparent group-hover:border-white/10 group-hover:bg-white/5 transition-all duration-300 -z-10" />
                 )}
-                
+
                 {item.icon}
                 <span className="absolute left-14 bg-zinc-950 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-x-2 group-hover:translate-x-0">
                   {item.label}
@@ -444,276 +444,224 @@ export default function Home() {
           {/* Simulated chaotic windows cluster */}
           <div className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center">
             <div className="w-[1200px] h-[800px] relative">
-              <AnimatePresence>
-                {/* 1. IDE mockup window */}
-                <motion.div
-                  key="ide-mockup"
-                  className="absolute bg-zinc-950/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 flex flex-col"
-                  style={{ transformOrigin: "center" }}
-                  animate={
-                    layoutState === "chaos"
-                      ? {
-                          top: "12%",
-                          left: "4%",
-                          width: "420px",
-                          height: "300px",
-                          rotate: -5,
-                          scale: 0.9,
-                        }
-                      : layoutState === "restoring"
-                        ? {
-                            top: "18%",
-                            left: "10%",
-                            width: "520px",
-                            height: "340px",
-                            rotate: -1,
-                            scale: 0.95,
-                          }
-                        : {
-                            top: "10%",
-                            left: "6%",
-                            width: "620px",
-                            height: "420px",
-                            rotate: 0,
-                            scale: 1,
-                          }
-                  }
-                  transition={{ type: "spring", stiffness: 70, damping: 15 }}
-                >
-                  <div className="bg-zinc-900 px-3 py-2 border-b border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-                      <span className="text-[10px] text-zinc-500 font-mono ml-2">
-                        vscode://workspace/docksy-api
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-4 flex-1 font-mono text-xs text-zinc-400 select-none overflow-hidden space-y-1.5">
-                    <p className="text-zinc-600">
-                      // capturing environment snapshot...
-                    </p>
-                    <p>
-                      <span className="text-purple-400">const</span> docksy ={" "}
-                      <span className="text-yellow-400">require</span>(
-                      <span className="text-green-300">"docksy-node"</span>);
-                    </p>
-                    <p>
-                      <span className="text-purple-400">const</span> windows ={" "}
-                      <span className="text-purple-400">await</span> docksy.
-                      <span className="text-blue-400">getOpenWindows</span>();
-                    </p>
-                    <p className="text-zinc-500">{"{"}</p>
-                    <p className="pl-4">
-                      engine:{" "}
-                      <span className="text-amber-400">"win32-python"</span>,
-                    </p>
-                    <p className="pl-4">
-                      captureSpeed:{" "}
-                      <span className="text-emerald-400">"142ms"</span>,
-                    </p>
-                    <p className="pl-4">
-                      monitors: <span className="text-purple-400">2</span>
-                    </p>
-                    <p className="text-zinc-500">{"}"}</p>
-                  </div>
-                </motion.div>
-
-                {/* 2. Web Browser mockup window */}
-                <motion.div
-                  key="browser-mockup"
-                  className="absolute bg-zinc-950/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-30 flex flex-col"
-                  animate={
-                    layoutState === "chaos"
-                      ? {
-                          top: "45%",
-                          right: "3%",
-                          width: "400px",
-                          height: "260px",
-                          rotate: 7,
-                          scale: 0.9,
-                        }
-                      : layoutState === "restoring"
-                        ? {
-                            top: "25%",
-                            right: "8%",
-                            width: "460px",
-                            height: "300px",
-                            rotate: 2,
-                            scale: 0.95,
-                          }
-                        : {
-                            top: "10%",
-                            right: "6%",
-                            width: "480px",
-                            height: "340px",
-                            rotate: 0,
-                            scale: 1,
-                          }
-                  }
-                  transition={{ type: "spring", stiffness: 65, damping: 14 }}
-                >
-                  <div className="bg-zinc-900 px-3 py-2 border-b border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 w-full">
-                      <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                      <div className="bg-zinc-950 text-[10px] text-zinc-400 font-mono px-3 py-0.5 rounded border border-white/5 flex-1 mx-2 flex items-center justify-between">
-                        <span>localhost:3000/docs/restorer</span>
-                        <RefreshCw className="w-2.5 h-2.5 text-zinc-500 animate-spin-slow" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-4 flex-1 flex flex-col justify-center items-center select-none bg-zinc-950">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl border border-primary/20 flex items-center justify-center mb-3">
-                      <Globe className="w-6 h-6 text-primary" />
-                    </div>
-                    <span className="text-xs font-semibold text-zinc-200">
-                      Localhost Workspace
-                    </span>
-                    <span className="text-[10px] text-zinc-500 mt-1">
-                      Synced with Docksy browser client socket
+              {/* 1. IDE mockup window */}
+              <motion.div
+                key="ide-mockup"
+                className="absolute bg-zinc-950/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 flex flex-col"
+                style={{
+                  transformOrigin: "center",
+                  top: "12%",
+                  left: "4%",
+                  width: "420px",
+                  height: "300px",
+                }}
+                animate={{
+                  y: [0, -8, 0],
+                  rotate: [-5, -4.5, -5],
+                  scale: 0.9,
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <div className="bg-zinc-900 px-3 py-2 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+                    <span className="text-[10px] text-zinc-500 font-mono ml-2">
+                      vscode://workspace/docksy-api
                     </span>
                   </div>
-                </motion.div>
+                </div>
+                <div className="p-4 flex-1 font-mono text-xs text-zinc-400 select-none overflow-hidden space-y-1.5">
+                  <p className="text-zinc-600">
+                    // capturing environment snapshot...
+                  </p>
+                  <p>
+                    <span className="text-purple-400">const</span> docksy ={" "}
+                    <span className="text-yellow-400">require</span>(
+                    <span className="text-green-300">"docksy-node"</span>);
+                  </p>
+                  <p>
+                    <span className="text-purple-400">const</span> windows ={" "}
+                    <span className="text-purple-400">await</span> docksy.
+                    <span className="text-blue-400">getOpenWindows</span>();
+                  </p>
+                  <p className="text-zinc-500">{"{"}</p>
+                  <p className="pl-4">
+                    engine:{" "}
+                    <span className="text-amber-400">"win32-python"</span>,
+                  </p>
+                  <p className="pl-4">
+                    captureSpeed:{" "}
+                    <span className="text-emerald-400">"142ms"</span>,
+                  </p>
+                  <p className="pl-4">
+                    monitors: <span className="text-purple-400">2</span>
+                  </p>
+                  <p className="text-zinc-500">{"}"}</p>
+                </div>
+              </motion.div>
 
-                {/* 3. Database Client mockup window */}
-                <motion.div
-                  key="db-mockup"
-                  className="absolute bg-zinc-950/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-10 flex flex-col"
-                  animate={
-                    layoutState === "chaos"
-                      ? {
-                          bottom: "10%",
-                          left: "15%",
-                          width: "350px",
-                          height: "220px",
-                          rotate: -12,
-                          scale: 0.85,
-                        }
-                      : layoutState === "restoring"
-                        ? {
-                            bottom: "15%",
-                            right: "12%",
-                            width: "420px",
-                            height: "260px",
-                            rotate: -3,
-                            scale: 0.95,
-                          }
-                        : {
-                            bottom: "10%",
-                            right: "6%",
-                            width: "480px",
-                            height: "280px",
-                            rotate: 0,
-                            scale: 1,
-                          }
-                  }
-                  transition={{ type: "spring", stiffness: 80, damping: 16 }}
-                >
-                  <div className="bg-zinc-900 px-3 py-2 border-b border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Database className="w-3.5 h-3.5 text-zinc-500" />
-                      <span className="text-[10px] text-zinc-400 font-mono">
-                        SQLite: docksy_snapshots.db
-                      </span>
+              {/* 2. Web Browser mockup window */}
+              <motion.div
+                key="browser-mockup"
+                className="absolute bg-zinc-950/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-30 flex flex-col"
+                style={{
+                  top: "45%",
+                  right: "3%",
+                  width: "400px",
+                  height: "260px",
+                }}
+                animate={{
+                  y: [0, 8, 0],
+                  rotate: [7, 7.5, 7],
+                  scale: 0.9,
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1,
+                }}
+              >
+                <div className="bg-zinc-900 px-3 py-2 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 w-full">
+                    <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                    <div className="bg-zinc-950 text-[10px] text-zinc-400 font-mono px-3 py-0.5 rounded border border-white/5 flex-1 mx-2 flex items-center justify-between">
+                      <span>localhost:3000/docs/restorer</span>
+                      <RefreshCw className="w-2.5 h-2.5 text-zinc-500 animate-spin-slow" />
                     </div>
                   </div>
-                  <div className="p-3 flex-1 overflow-hidden font-mono text-[10px] text-zinc-400 space-y-1 select-none">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-white/10 text-zinc-500">
-                          <th className="pb-1.5">snapshot_id</th>
-                          <th className="pb-1.5">app_name</th>
-                          <th className="pb-1.5">x_pos</th>
-                          <th className="pb-1.5">y_pos</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-white/5">
-                          <td className="py-1">s01_t</td>
-                          <td className="text-zinc-200">chrome.exe</td>
-                          <td>1024</td>
-                          <td>0</td>
-                        </tr>
-                        <tr className="border-b border-white/5">
-                          <td className="py-1">s02_t</td>
-                          <td className="text-zinc-200">code.exe</td>
-                          <td>0</td>
-                          <td>0</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1">s03_t</td>
-                          <td className="text-zinc-200">spotify.exe</td>
-                          <td>2560</td>
-                          <td>720</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-center items-center select-none bg-zinc-950">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl border border-primary/20 flex items-center justify-center mb-3">
+                    <Globe className="w-6 h-6 text-primary" />
                   </div>
-                </motion.div>
+                  <span className="text-xs font-semibold text-zinc-200">
+                    Localhost Workspace
+                  </span>
+                  <span className="text-[10px] text-zinc-500 mt-1">
+                    Synced with Docksy browser client socket
+                  </span>
+                </div>
+              </motion.div>
 
-                {/* 4. Terminal Mockup window */}
-                <motion.div
-                  key="terminal-mockup"
-                  className="absolute bg-zinc-950/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 flex flex-col"
-                  animate={
-                    layoutState === "chaos"
-                      ? {
-                          bottom: "14%",
-                          right: "20%",
-                          width: "360px",
-                          height: "200px",
-                          rotate: 8,
-                          scale: 0.9,
-                        }
-                      : layoutState === "restoring"
-                        ? {
-                            bottom: "15%",
-                            left: "10%",
-                            width: "520px",
-                            height: "240px",
-                            rotate: -1,
-                            scale: 0.95,
-                          }
-                        : {
-                            bottom: "10%",
-                            left: "6%",
-                            width: "620px",
-                            height: "280px",
-                            rotate: 0,
-                            scale: 1,
-                          }
-                  }
-                  transition={{ type: "spring", stiffness: 75, damping: 15 }}
-                >
-                  <div className="bg-zinc-900 px-3 py-2 border-b border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <TerminalIcon className="w-3.5 h-3.5 text-zinc-500" />
-                      <span className="text-[10px] text-zinc-400 font-mono">
-                        PowerShell
-                      </span>
-                    </div>
+              {/* 3. Database Client mockup window */}
+              <motion.div
+                key="db-mockup"
+                className="absolute bg-zinc-950/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-10 flex flex-col"
+                style={{
+                  bottom: "10%",
+                  left: "15%",
+                  width: "350px",
+                  height: "220px",
+                }}
+                animate={{
+                  y: [0, -10, 0],
+                  rotate: [-12, -11.5, -12],
+                  scale: 0.85,
+                }}
+                transition={{
+                  duration: 7,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.5,
+                }}
+              >
+                <div className="bg-zinc-900 px-3 py-2 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5 text-zinc-500" />
+                    <span className="text-[10px] text-zinc-400 font-mono">
+                      SQLite: docksy_snapshots.db
+                    </span>
                   </div>
-                  <div className="p-3 flex-1 font-mono text-[11px] text-zinc-300 space-y-1 select-none overflow-hidden">
-                    <p className="text-zinc-500">
-                      Windows PowerShell (C) Microsoft Corporation.
-                    </p>
-                    <p>&gt; python engine.py --restore s01_t</p>
-                    <p className="text-blue-400">
-                      [info] Connection established with Electron Socket Client.
-                    </p>
-                    <p className="text-yellow-500">
-                      [engine] Parsing 3 active win32 application targets...
-                    </p>
-                    <p className="text-emerald-400">
-                      [success] Restored code.exe bounds (1920x1080) on Monitor
-                      1.
-                    </p>
+                </div>
+                <div className="p-3 flex-1 overflow-hidden font-mono text-[10px] text-zinc-400 space-y-1 select-none">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-white/10 text-zinc-500">
+                        <th className="pb-1.5">snapshot_id</th>
+                        <th className="pb-1.5">app_name</th>
+                        <th className="pb-1.5">x_pos</th>
+                        <th className="pb-1.5">y_pos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-white/5">
+                        <td className="py-1">s01_t</td>
+                        <td className="text-zinc-200">chrome.exe</td>
+                        <td>1024</td>
+                        <td>0</td>
+                      </tr>
+                      <tr className="border-b border-white/5">
+                        <td className="py-1">s02_t</td>
+                        <td className="text-zinc-200">code.exe</td>
+                        <td>0</td>
+                        <td>0</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1">s03_t</td>
+                        <td className="text-zinc-200">spotify.exe</td>
+                        <td>2560</td>
+                        <td>720</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
+
+              {/* 4. Terminal Mockup window */}
+              <motion.div
+                key="terminal-mockup"
+                className="absolute bg-zinc-950/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 flex flex-col"
+                style={{
+                  bottom: "14%",
+                  right: "20%",
+                  width: "360px",
+                  height: "200px",
+                }}
+                animate={{
+                  y: [0, 8, 0],
+                  rotate: [8, 8.5, 8],
+                  scale: 0.9,
+                }}
+                transition={{
+                  duration: 9,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1.5,
+                }}
+              >
+                <div className="bg-zinc-900 px-3 py-2 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <TerminalIcon className="w-3.5 h-3.5 text-zinc-500" />
+                    <span className="text-[10px] text-zinc-400 font-mono">
+                      PowerShell
+                    </span>
                   </div>
-                </motion.div>
-              </AnimatePresence>
+                </div>
+                <div className="p-3 flex-1 font-mono text-[11px] text-zinc-300 space-y-1 select-none overflow-hidden">
+                  <p className="text-zinc-500">
+                    Windows PowerShell (C) Microsoft Corporation.
+                  </p>
+                  <p>&gt; python engine.py --restore s01_t</p>
+                  <p className="text-blue-400">
+                    [info] Connection established with Electron Socket Client.
+                  </p>
+                  <p className="text-yellow-500">
+                    [engine] Parsing 3 active win32 application targets...
+                  </p>
+                  <p className="text-emerald-400">
+                    [success] Restored code.exe bounds (1920x1080) on Monitor 1.
+                  </p>
+                </div>
+              </motion.div>
             </div>
           </div>
 
@@ -758,17 +706,20 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.3 }}
               className="flex flex-col sm:flex-row items-center gap-4 z-50"
             >
-              <button
-                onClick={handleHeroRestore}
+              <a
+                href="#"
+                onClick={startDownload}
                 className="group flex items-center justify-center gap-2.5 px-8 py-4 bg-primary hover:bg-primary/95 text-white font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer text-sm"
               >
-                <Play className="w-4 h-4 fill-white text-white group-hover:scale-110 transition-all duration-200" />
-                <span>
-                  {layoutState === "ordered"
-                    ? "Reset Workspace Layout"
-                    : "Trigger Restore Simulator"}
-                </span>
-              </button>
+                {downloadProgress !== null ? (
+                  <span>Downloading {downloadProgress}%</span>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 text-white" />
+                    <span>Download Installer (.exe)</span>
+                  </>
+                )}
+              </a>
 
               <a
                 href="#console"
@@ -1259,85 +1210,203 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Simulated Live Diagram Output */}
-            <div className="flex flex-col justify-between h-full bg-zinc-950 p-6 rounded-xl border border-white/5 min-h-[300px]">
-              <div>
-                <span className="text-[10px] font-mono text-zinc-500 uppercase block">
-                  Engine Socket Logs
-                </span>
-                <div className="mt-4 space-y-3 font-mono text-[11px] text-zinc-400">
+            {/* Simulated Live Diagram Output - Redesigned to be a professional active pipeline visualizer */}
+            <div className="flex flex-col justify-between h-full bg-zinc-900/40 p-6 rounded-2xl border border-white/5 min-h-[340px] shadow-inner relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                    Pipeline Monitor
+                  </span>
+                  <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                      Live
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-6">
                   <AnimatePresence mode="wait">
                     {hoveredNode === "ui" && (
                       <motion.div
-                        key="ui-log"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="space-y-1.5"
+                        key="ui-pipeline"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4"
                       >
-                        <p className="text-primary">
-                          [UI] Click captured on restore btn
-                        </p>
-                        <p>[UI] Sending process array request...</p>
-                        <p className="text-zinc-600">// IPC channel ready</p>
+                        <div>
+                          <span className="text-[10px] text-primary font-bold uppercase tracking-wider">
+                            Layer 1
+                          </span>
+                          <h4 className="text-sm font-extrabold text-white mt-0.5">
+                            Electron Desktop Client
+                          </h4>
+                        </div>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between text-xs border-b border-white/5 pb-2">
+                            <span className="text-zinc-500">
+                              Active Service
+                            </span>
+                            <span className="text-zinc-300 font-semibold">
+                              React Renderer Thread
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs border-b border-white/5 pb-2">
+                            <span className="text-zinc-500">
+                              IPC Communication
+                            </span>
+                            <span className="text-emerald-400 font-mono font-medium">
+                              channel://main-restore
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-zinc-500">
+                              Operation Status
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase">
+                              Ready
+                            </span>
+                          </div>
+                        </div>
                       </motion.div>
                     )}
+
                     {hoveredNode === "python" && (
                       <motion.div
-                        key="python-log"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="space-y-1.5"
+                        key="python-pipeline"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4"
                       >
-                        <p className="text-purple-400">
-                          [Win32] Executing shell command
-                        </p>
-                        <p>[Win32] Querying window descriptors...</p>
-                        <p className="text-zinc-600">
-                          &gt; user32.SetWindowPos(hwnd, ...)
-                        </p>
+                        <div>
+                          <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">
+                            Layer 2
+                          </span>
+                          <h4 className="text-sm font-extrabold text-white mt-0.5">
+                            Win32 Native Sidecar
+                          </h4>
+                        </div>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between text-xs border-b border-white/5 pb-2">
+                            <span className="text-zinc-500">
+                              Core Library Bindings
+                            </span>
+                            <span className="text-zinc-300 font-mono font-medium">
+                              user32.dll / shell32.dll
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs border-b border-white/5 pb-2">
+                            <span className="text-zinc-500">
+                              Call Execution Latency
+                            </span>
+                            <span className="text-emerald-400 font-semibold font-mono">
+                              &lt; 1.4ms
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-zinc-500">
+                              Memory Allocation
+                            </span>
+                            <span className="text-zinc-400 font-mono">
+                              14.2 MB (Cached)
+                            </span>
+                          </div>
+                        </div>
                       </motion.div>
                     )}
+
                     {hoveredNode === "chrome" && (
                       <motion.div
-                        key="chrome-log"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="space-y-1.5"
+                        key="chrome-pipeline"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4"
                       >
-                        <p className="text-amber-400">
-                          [Socket] Client connected on :5175
-                        </p>
-                        <p>[Socket] Pulling active window URLs...</p>
-                        <p className="text-zinc-600">
-                          [Chrome] 4 tabs cataloged
-                        </p>
+                        <div>
+                          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                            Layer 3
+                          </span>
+                          <h4 className="text-sm font-extrabold text-white mt-0.5">
+                            WebSocket Browser Broker
+                          </h4>
+                        </div>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between text-xs border-b border-white/5 pb-2">
+                            <span className="text-zinc-500">
+                              Active Connection
+                            </span>
+                            <span className="text-zinc-300 font-mono font-medium">
+                              ws://localhost:5175
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs border-b border-white/5 pb-2">
+                            <span className="text-zinc-500">
+                              Extension Tab Catalog
+                            </span>
+                            <span className="text-zinc-300 font-semibold">
+                              4 Active Sessions
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-zinc-500">Sync Status</span>
+                            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase">
+                              Online
+                            </span>
+                          </div>
+                        </div>
                       </motion.div>
                     )}
+
                     {!hoveredNode && (
                       <motion.div
-                        key="default-log"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-zinc-600 space-y-1.5"
+                        key="default-pipeline"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4"
                       >
-                        <p>// Hover over left modules</p>
-                        <p>// to trace process pipelines...</p>
-                        <p className="text-emerald-500/80">
-                          [Ready] Pipeline idling
+                        <div>
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                            System State
+                          </span>
+                          <h4 className="text-sm font-extrabold text-white mt-0.5">
+                            Integration Bus Idling
+                          </h4>
+                        </div>
+                        <p className="text-xs text-zinc-400 leading-relaxed">
+                          Hover over any of the architecture modules on the left
+                          to inspect real-time connection sockets, OS bindings,
+                          and core thread states.
                         </p>
+                        <div className="pt-2">
+                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <motion.div
+                              animate={{ x: ["-100%", "100%"] }}
+                              transition={{
+                                duration: 3,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                              className="h-full w-1/3 bg-gradient-to-r from-transparent via-primary/40 to-transparent"
+                            />
+                          </div>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
               </div>
 
-              <div className="border-t border-white/5 pt-4 mt-6 flex justify-between items-center text-[10px] font-mono text-zinc-500">
+              <div className="border-t border-white/5 pt-4 mt-6 flex justify-between items-center text-[9px] font-mono text-zinc-500 tracking-wider relative z-10">
                 <span>IPC SOCKET PROTOCOL</span>
-                <span className="text-zinc-400 font-bold">RESTFUL</span>
+                <span className="text-zinc-400 font-extrabold">
+                  SECURE_LOCAL
+                </span>
               </div>
             </div>
           </div>
@@ -1362,27 +1431,35 @@ export default function Home() {
           </div>
 
           <div className="w-full bg-surface-card border border-white/5 rounded-2xl overflow-hidden shadow-2xl dock-glow">
-            {/* Console Control Bar */}
-            <div className="bg-zinc-900/60 px-5 py-3 border-b border-white/5 flex items-center justify-between">
+            {/* Integration Hub Control Bar */}
+            <div className="bg-zinc-900/60 px-5 py-3.5 border-b border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+                <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                  <Settings className="w-4 h-4" />
                 </div>
-                <span className="text-xs text-zinc-400 font-mono">
-                  cmd.exe / powershell
-                </span>
+                <div>
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Integration Pipeline
+                  </h3>
+                  <span className="text-[9px] text-zinc-500 font-mono block">
+                    docksy-setup-manager v1.0.2
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {["setup", "build", "logs"].map((tab) => (
+              <div className="flex items-center gap-1.5 bg-zinc-950/60 p-1 rounded-lg border border-white/5">
+                {["setup", "build", "diagnostics"].map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setActiveConsoleTab(tab as any)}
-                    className={`px-3 py-1 rounded text-[10px] font-mono uppercase transition-all duration-200 ${
-                      activeConsoleTab === tab
-                        ? "bg-primary/20 text-primary border border-primary/30"
-                        : "bg-transparent text-zinc-500 border border-transparent hover:text-zinc-300"
+                    onClick={() =>
+                      setActiveConsoleTab(
+                        tab === "diagnostics" ? "logs" : (tab as any),
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all duration-200 ${
+                      activeConsoleTab === tab ||
+                      (activeConsoleTab === "logs" && tab === "diagnostics")
+                        ? "bg-white text-black shadow-sm"
+                        : "bg-transparent text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
                     {tab}
@@ -1391,67 +1468,165 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Console Terminal Screen */}
-            <div className="p-6 bg-zinc-950 min-h-[250px] font-mono text-xs text-zinc-300 flex flex-col justify-between">
+            {/* Integration Playground Screen */}
+            <div className="p-6 bg-zinc-950/50 min-h-[240px] text-zinc-300 flex flex-col justify-center">
               <div className="space-y-2">
                 <AnimatePresence mode="wait">
                   {activeConsoleTab === "setup" && (
                     <motion.div
                       key="cli-setup"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-1.5"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-4"
                     >
-                      <p className="text-zinc-500">
-                        # Install dependencies inside web marketing client
-                      </p>
-                      <p>&gt; npm install docksy-restorer --save</p>
-                      <p className="text-zinc-400">added 18 packages in 4.2s</p>
-                      <p>&gt; npm run register-extension</p>
-                      <p className="text-emerald-400">
-                        ✓ Browser socket connection listening on localhost:5175
-                      </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/5 p-4 rounded-xl border border-white/5">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                            <TerminalIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white">
+                              NPM Client Package
+                            </h4>
+                            <span className="text-[10px] text-zinc-500 font-mono">
+                              npm install docksy-restorer --save
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            navigator.clipboard.writeText(
+                              "npm install docksy-restorer --save",
+                            )
+                          }
+                          className="px-3 py-1.5 bg-zinc-900 border border-white/10 text-zinc-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 self-start sm:self-center transition-all duration-200"
+                        >
+                          Copy Command
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-white/5 p-3 rounded-lg border border-white/5 flex items-center justify-between text-xs">
+                          <span className="text-zinc-500">Dependencies</span>
+                          <span className="text-emerald-400 font-semibold">
+                            18 Packages Resolved
+                          </span>
+                        </div>
+                        <div className="bg-white/5 p-3 rounded-lg border border-white/5 flex items-center justify-between text-xs">
+                          <span className="text-zinc-500">Browser Port</span>
+                          <span className="text-zinc-300 font-mono font-medium">
+                            localhost:5175
+                          </span>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
 
                   {activeConsoleTab === "build" && (
                     <motion.div
                       key="cli-build"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-1.5"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-4"
                     >
-                      <p className="text-zinc-500">
-                        # Building Electron client distribution bundles
-                      </p>
-                      <p>&gt; npm run package</p>
-                      <p>Building React frontend... completed.</p>
-                      <p>Compiling python sidecar process... completed.</p>
-                      <p className="text-emerald-400">
-                        ✓ Created file: dist-packaged/Docksy.Setup.1.0.2.exe
-                        (~45MB)
-                      </p>
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                        <h4 className="text-sm font-bold text-white mb-3">
+                          Electron Package Pipeline
+                        </h4>
+                        <div className="space-y-2.5">
+                          {[
+                            {
+                              label: "Compile React Frontend (Vite)",
+                              status: "Completed",
+                              time: "1.2s",
+                            },
+                            {
+                              label: "Mount Python Win32 sidecar (PyInstaller)",
+                              status: "Completed",
+                              time: "2.8s",
+                            },
+                            {
+                              label: "Package Electron Native Bundler",
+                              status: "Completed",
+                              time: "0.9s",
+                            },
+                          ].map((step, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between text-xs"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-[10px] font-bold">
+                                  ✓
+                                </span>
+                                <span className="text-zinc-300">
+                                  {step.label}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-zinc-500 font-mono">
+                                {step.time}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </motion.div>
                   )}
 
                   {activeConsoleTab === "logs" && (
                     <motion.div
                       key="cli-logs"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-1.5"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-4"
                     >
-                      <p className="text-zinc-500">
-                        # Standard engine operation execution logs
-                      </p>
-                      <p>[info] SQLite database engine mounted successfully.</p>
-                      <p>[info] Scanning coordinates mapping database...</p>
-                      <p className="text-blue-400">
-                        [socket] Active browser extension socket active.
-                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {[
+                          {
+                            title: "SQLite Database",
+                            status: "Online",
+                            desc: "Local vector DB mounted",
+                            color:
+                              "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+                          },
+                          {
+                            title: "Win32 Bindings",
+                            status: "Verified",
+                            desc: "DLL APIs responding",
+                            color:
+                              "text-purple-400 bg-purple-500/10 border-purple-500/20",
+                          },
+                          {
+                            title: "WebSocket Sync",
+                            status: "Active",
+                            desc: "Sync broker listening",
+                            color:
+                              "text-blue-400 bg-blue-500/10 border-blue-500/20",
+                          },
+                        ].map((stat, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-2"
+                          >
+                            <span className="text-[10px] text-zinc-500 font-mono uppercase block">
+                              {stat.title}
+                            </span>
+                            <div className="flex items-center justify-between">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${stat.color}`}
+                              >
+                                {stat.status}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-zinc-400 leading-tight">
+                              {stat.desc}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
