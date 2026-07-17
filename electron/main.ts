@@ -34,7 +34,8 @@ function applySettings() {
           const launchAtStartup = db.settings.launch_at_startup === '1';
           app.setLoginItemSettings({
             openAtLogin: launchAtStartup,
-            path: app.getPath('exe')
+            path: app.getPath('exe'),
+            args: launchAtStartup ? ['--hidden'] : []
           });
           console.log(`[Electron Settings] Applied launch_at_startup = ${launchAtStartup}`);
         }
@@ -51,12 +52,7 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-// Watch for settings changes dynamically
-fs.watch(dbDir, (eventType, filename) => {
-  if (filename === 'docksy.json') {
-    applySettings();
-  }
-});
+// fs.watch moved inside single instance lock block below
 
 // Self-contained transparent/colored base64 PNG for Tray Icon to prevent missing-file crashes
 const trayIconBase64 = 
@@ -162,7 +158,12 @@ function createWindow() {
   mainWindow.setMenuBarVisibility(false);
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
+    const isHidden = process.argv.includes('--hidden') || app.getLoginItemSettings().wasOpenedAtLogin;
+    if (!isHidden) {
+      mainWindow?.show();
+    } else {
+      console.log("[Electron] Started in hidden mode (minimized to tray)");
+    }
   });
 
   // Minimize to tray logic
@@ -184,42 +185,66 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
-  applySettings();
-  startPythonBackend();
-  createTray();
-  createWindow();
+const gotTheLock = app.requestSingleInstanceLock();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('will-quit', () => {
-  if (pythonProcess) {
-    console.log("Terminating Python sidecar engine...");
-    pythonProcess.kill();
-  }
-});
-
-// IPC handlers for minimizing, tray state, and platform operations
-ipcMain.handle('minimize-window', () => {
-  mainWindow?.minimize();
-});
-
-ipcMain.handle('close-to-tray', () => {
-  mainWindow?.hide();
-});
-
-ipcMain.handle('quit-app', () => {
+if (!gotTheLock) {
   isQuitting = true;
   app.quit();
-});
+} else {
+  // Watch for settings changes dynamically
+  fs.watch(dbDir, (eventType, filename) => {
+    if (filename === 'docksy.json') {
+      applySettings();
+    }
+  });
+
+  app.on('second-instance', (event, commandLine) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      if (!commandLine.includes('--hidden')) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }
+  });
+
+  app.whenReady().then(() => {
+    applySettings();
+    startPythonBackend();
+    createTray();
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  });
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+
+  app.on('will-quit', () => {
+    if (pythonProcess) {
+      console.log("Terminating Python sidecar engine...");
+      pythonProcess.kill();
+    }
+  });
+
+  // IPC handlers for minimizing, tray state, and platform operations
+  ipcMain.handle('minimize-window', () => {
+    mainWindow?.minimize();
+  });
+
+  ipcMain.handle('close-to-tray', () => {
+    mainWindow?.hide();
+  });
+
+  ipcMain.handle('quit-app', () => {
+    isQuitting = true;
+    app.quit();
+  });
+}

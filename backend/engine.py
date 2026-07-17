@@ -604,6 +604,76 @@ def get_uwp_real_pid_and_hwnd(hwnd, parent_pid):
     user32.EnumChildWindows(hwnd, cb, 0)
     return real_hwnd[0], real_pid.value
 
+def get_current_uwp_path(saved_path):
+    if not saved_path or "windowsapps" not in saved_path.lower():
+        return saved_path
+
+    normalized_path = os.path.normpath(saved_path)
+    parts = normalized_path.split(os.sep)
+    try:
+        win_apps_idx = -1
+        for i, part in enumerate(parts):
+            if part.lower() == "windowsapps":
+                win_apps_idx = i
+                break
+        if win_apps_idx == -1 or win_apps_idx >= len(parts) - 2:
+            return saved_path
+            
+        folder_name = parts[win_apps_idx + 1]
+        relative_exe = os.path.sep.join(parts[win_apps_idx + 2:])
+        
+        folder_parts = folder_name.split('_')
+        if len(folder_parts) < 2:
+            return saved_path
+            
+        family_name = f"{folder_parts[0]}_{folder_parts[-1]}"
+        
+        count = ctypes.c_uint32(0)
+        buf_len = ctypes.c_uint32(0)
+        
+        rc = kernel32.GetPackagesByPackageFamily(
+            family_name,
+            ctypes.byref(count),
+            None,
+            ctypes.byref(buf_len),
+            None
+        )
+        if rc == 122 and count.value > 0:
+            pf_type = ctypes.c_wchar_p * count.value
+            pfs = pf_type()
+            buf = ctypes.create_unicode_buffer(buf_len.value)
+            rc = kernel32.GetPackagesByPackageFamily(
+                family_name,
+                ctypes.byref(count),
+                pfs,
+                ctypes.byref(buf_len),
+                buf
+            )
+            if rc == 0:
+                package_full_name = pfs[0]
+                path_len = ctypes.c_uint32(0)
+                rc_path = kernel32.GetPackagePathByFullName(
+                    package_full_name,
+                    ctypes.byref(path_len),
+                    None
+                )
+                if rc_path == 122 and path_len.value > 0:
+                    path_buf = ctypes.create_unicode_buffer(path_len.value)
+                    rc_path = kernel32.GetPackagePathByFullName(
+                        package_full_name,
+                        ctypes.byref(path_len),
+                        path_buf
+                    )
+                    if rc_path == 0:
+                        new_base_path = path_buf.value
+                        new_exe_path = os.path.join(new_base_path, relative_exe)
+                        return new_exe_path
+    except Exception as e:
+        print(f"Error resolving UWP path: {e}")
+        
+    return saved_path
+
+
 def get_all_process_command_lines():
     pid_to_cmd = {}
     try:
@@ -842,9 +912,13 @@ def capture_windows(ignored_set):
             return True
             
         # Filter out owned windows (GW_OWNER = 3) unless they explicitly set WS_EX_APPWINDOW
+        # (Bypass filtering for Windows Terminal and PseudoConsole hosted windows)
         owner = user32.GetWindow(hwnd, 3)
         if owner and user32.IsWindowVisible(owner) and not (ex_style & 0x00040000): # WS_EX_APPWINDOW
-            return True
+            owner_class_buf = ctypes.create_unicode_buffer(256)
+            user32.GetClassNameW(owner, owner_class_buf, 256)
+            if class_name != "CASCADIA_HOSTING_WINDOW_CLASS" and owner_class_buf.value != "PseudoConsoleWindow":
+                return True
             
         length = user32.GetWindowTextLengthW(hwnd)
         if length == 0:
@@ -1471,6 +1545,8 @@ def restore_workspace_action(workspace_id):
                 break
                 
         exe_path = vw.get("exe_path")
+        if exe_path:
+            exe_path = get_current_uwp_path(exe_path)
         if not exe_path or not os.path.exists(exe_path):
             exe_path = "code.exe"
         vscode_cmd = f'"{exe_path}" "{folder_path}"' if folder_path else f'"{exe_path}"'
@@ -1498,7 +1574,10 @@ def restore_workspace_action(workspace_id):
 
     # 5. Restore Other Windows
     for ow in other_windows:
-        exe_path = ow["exe_path"]
+        old_exe_path = ow["exe_path"]
+        exe_path = get_current_uwp_path(old_exe_path)
+        ow["exe_path"] = exe_path # Update in memory
+        
         exe_name = os.path.basename(exe_path).lower()
         exe_pname = os.path.splitext(exe_name)[0]
         
@@ -1519,6 +1598,12 @@ def restore_workspace_action(workspace_id):
                 
         try:
             launch_cmd = ow.get("cmd_line", "")
+            if exe_path != old_exe_path and launch_cmd:
+                try:
+                    pattern = re.compile(re.escape(old_exe_path), re.IGNORECASE)
+                    launch_cmd = pattern.sub(exe_path, launch_cmd)
+                except Exception:
+                    pass
             
             # Check if this is a browser and adjust launch_cmd to open in new window
             browser_exes_list = ["chrome.exe", "msedge.exe", "brave.exe", "vivaldi.exe", "opera.exe", "launcher.exe", "firefox.exe"]
