@@ -75,10 +75,12 @@ export const ScheduleView: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-        <h1 className="view-title">Schedule</h1>
-        <p className="view-subtitle">Automate your environment restoration by time or Windows startup.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <div className="view-header">
+        <div className="view-title-group">
+          <h1 className="view-title">Schedule</h1>
+          <p className="view-subtitle">Automate your environment restoration by time or Windows startup.</p>
+        </div>
       </div>
 
       <div className="dashboard-grid">
@@ -94,7 +96,7 @@ export const ScheduleView: React.FC = () => {
               You need to save at least one workspace before setting up schedules.
             </p>
           ) : (
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="form-group">
                 <label>Select Workspace</label>
                 <select 
@@ -133,16 +135,15 @@ export const ScheduleView: React.FC = () => {
 
                   <div className="form-group">
                     <label>Days of the Week</label>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                       {DAYS_OF_WEEK.map(day => {
                         const isSelected = selectedDays.includes(day);
                         return (
                           <button
                             key={day}
                             type="button"
-                            className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                            className={`day-btn ${isSelected ? 'active' : ''}`}
                             onClick={() => handleDayToggle(day)}
-                            style={{ padding: '4px 10px', fontSize: '0.8rem', minWidth: '42px' }}
                           >
                             {day}
                           </button>
@@ -150,9 +151,9 @@ export const ScheduleView: React.FC = () => {
                       })}
                     </div>
                     <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                      <button type="button" className="btn btn-secondary" onClick={() => handleShortcutDays('weekdays')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>Weekdays</button>
-                      <button type="button" className="btn btn-secondary" onClick={() => handleShortcutDays('everyday')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>Everyday</button>
-                      <button type="button" className="btn btn-secondary" onClick={() => handleShortcutDays('none')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>Clear</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => handleShortcutDays('weekdays')} style={{ padding: '4px 12px', fontSize: '0.75rem' }}>Weekdays</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => handleShortcutDays('everyday')} style={{ padding: '4px 12px', fontSize: '0.75rem' }}>Everyday</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => handleShortcutDays('none')} style={{ padding: '4px 12px', fontSize: '0.75rem' }}>Clear</button>
                     </div>
                   </div>
                 </>
@@ -187,23 +188,36 @@ export const ScheduleView: React.FC = () => {
               No automation triggers defined yet.
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto' }}>
               {schedules.map((s) => (
-                <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-app)' }}>
+                <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-app)' }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: s.enabled ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: s.enabled ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                       Restore: {s.workspace_name}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {s.trigger_type === 'startup' ? (
                         <span>On Windows Startup</span>
                       ) : (
                         <span>Daily at {s.time} ({s.days})</span>
                       )}
-                      {!s.enabled && <span style={{ marginLeft: '6px', color: 'var(--danger-color)', fontWeight: 600 }}>(DISABLED)</span>}
+                      {!s.enabled && (
+                        <span style={{ 
+                          color: 'var(--danger-color)', 
+                          backgroundColor: 'var(--danger-bg)',
+                          border: '1px solid var(--danger-color)',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.5px'
+                        }}>
+                          DISABLED
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <button className="btn btn-danger" onClick={() => deleteSchedule(s.id!)} style={{ padding: '4px 8px', fontSize: '0.8rem' }}>
+                  <button className="btn btn-danger" onClick={() => deleteSchedule(s.id!)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
                     Remove
                   </button>
                 </div>

@@ -41,19 +41,21 @@ export const SettingsView: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-        <h1 className="view-title">Settings</h1>
-        <p className="view-subtitle">Customize restoration rules, auto-snapshots, and exclude applications.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <div className="view-header">
+        <div className="view-title-group">
+          <h1 className="view-title">Settings</h1>
+          <p className="view-subtitle">Customize restoration rules, auto-snapshots, and exclude applications.</p>
+        </div>
       </div>
 
       <div className="dashboard-grid">
         {/* Left Settings Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
           {/* General Card */}
           <div className="card">
             <h2 className="card-title">General Preferences</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <label className="checkbox-label">
                 <input
                   type="checkbox"
@@ -86,7 +88,7 @@ export const SettingsView: React.FC = () => {
           {/* Auto Snapshots Card */}
           <div className="card">
             <h2 className="card-title">Auto Snapshot Preferences</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <label className="checkbox-label">
                 <input
                   type="checkbox"
@@ -116,7 +118,7 @@ export const SettingsView: React.FC = () => {
           {/* Restoration Card */}
           <div className="card">
             <h2 className="card-title">Restore Engine</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="form-group">
                 <label>Delay between launching applications (ms)</label>
                 <input
@@ -125,7 +127,7 @@ export const SettingsView: React.FC = () => {
                   step="100"
                   value={settings.restore_delay}
                   onChange={(e) => handleSelectSetting('restore_delay', e.target.value)}
-                  style={{ width: '120px' }}
+                  style={{ width: '140px' }}
                 />
               </div>
 
@@ -144,12 +146,12 @@ export const SettingsView: React.FC = () => {
         {/* Right Ignore Apps Column */}
         <div className="card">
           <h2 className="card-title">Ignore Applications List</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
             Docksy will exclude these applications from being captured or restored. 
             Useful for background tools, chat apps, or media players.
           </p>
 
-          <form onSubmit={handleAddIgnore} style={{ display: 'flex', gap: '10px' }}>
+          <form onSubmit={handleAddIgnore} style={{ display: 'flex', gap: '12px' }}>
             <input
               type="text"
               placeholder="e.g. discord.exe, spotify.exe"
@@ -161,18 +163,18 @@ export const SettingsView: React.FC = () => {
             <button className="btn btn-primary" type="submit">Exclude</button>
           </form>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', maxHeight: '350px', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '10px', backgroundColor: 'var(--bg-app)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '350px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px', backgroundColor: 'var(--bg-app)' }}>
             {ignoredApps.length === 0 ? (
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>
                 No applications excluded.
               </p>
             ) : (
               ignoredApps.map(app => (
-                <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-card)', fontSize: '0.85rem' }}>
-                  <span>{app.name}</span>
+                <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-card)', fontSize: '0.85rem' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{app.name}</span>
                   <button
                     type="button"
-                    style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: '0.8rem', padding: '2px 4px' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: '0.85rem', padding: '4px', fontWeight: 600 }}
                     onClick={() => removeIgnoredApp(app.id)}
                   >
                     ✕

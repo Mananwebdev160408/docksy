@@ -36,21 +36,23 @@ export const Workspaces: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-        <h1 className="view-title">Workspaces</h1>
-        <p className="view-subtitle">Manage, duplicate, and restore your saved desktop configurations.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <div className="view-header">
+        <div className="view-title-group">
+          <h1 className="view-title">Workspaces</h1>
+          <p className="view-subtitle">Manage, duplicate, and restore your saved desktop configurations.</p>
+        </div>
       </div>
 
       {workspaces.length === 0 ? (
-        <div style={{ padding: '64px', textAlign: 'center', backgroundColor: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: '8px', color: 'var(--text-secondary)' }}>
+        <div style={{ padding: '48px', textAlign: 'center', backgroundColor: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)' }}>
           No workspaces saved yet. Capture your first one from the Dashboard!
         </div>
       ) : (
         <div className="item-list">
           {workspaces.map((w) => (
             <div key={w.id} className="list-item">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
                 {/* Favorite Star */}
                 <button 
                   className="btn-icon" 
@@ -63,16 +65,16 @@ export const Workspaces: React.FC = () => {
 
                 {/* Edit Form or Info */}
                 {editId === w.id ? (
-                  <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '12px', flex: 1, alignItems: 'center' }}>
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      style={{ padding: '4px 8px', fontSize: '0.9rem', flex: 0.5 }}
+                      style={{ flex: 0.5 }}
                       autoFocus
                     />
-                    <button className="btn btn-primary" onClick={() => handleSaveRename(w.id)} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>Save</button>
-                    <button className="btn btn-secondary" onClick={handleCancelRename} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>Cancel</button>
+                    <button className="btn btn-primary" onClick={() => handleSaveRename(w.id)} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>Save</button>
+                    <button className="btn btn-secondary" onClick={handleCancelRename} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>Cancel</button>
                   </div>
                 ) : (
                   <div>
