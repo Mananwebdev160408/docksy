@@ -1,6 +1,6 @@
 {
   "name": "docksy",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Windows Workspace Restorer",
   "main": "dist-electron/main.js",
   "scripts": {

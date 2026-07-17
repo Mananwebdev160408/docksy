@@ -289,16 +289,16 @@ export default function Home() {
                   <div className="console-line">Building React frontend... done.</div>
                   <div className="console-line">Compiling Python Win32 sidecar... done.</div>
                   <div className="console-line">Packaging electron-builder distribution...</div>
-                  <div className="console-line success">✓ Distribution created: dist-packaged/Docksy.Setup.1.0.1.exe</div>
+                  <div className="console-line success">✓ Distribution created: dist-packaged/Docksy.Setup.1.0.2.exe</div>
                 </div>
 
                 <div className="download-bar">
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <span style={{ fontWeight: 600, fontSize: "0.8rem" }}>Docksy.Setup.1.0.1.exe</span>
+                    <span style={{ fontWeight: 600, fontSize: "0.8rem" }}>Docksy.Setup.1.0.2.exe</span>
                     <span style={{ color: "#4c566a", fontSize: "0.7rem" }}>Windows x64 • ~45MB • MIT License</span>
                   </div>
                   <a
-                    href="https://github.com/Mananwebdev160408/docksy/releases/latest/download/Docksy.Setup.1.0.1.exe"
+                    href="https://github.com/Mananwebdev160408/docksy/releases/latest/download/Docksy.Setup.1.0.2.exe"
                     className="btn btn-primary"
                     style={{ padding: "8px 16px", fontSize: "0.75rem" }}
                   >
