@@ -904,6 +904,10 @@ def capture_windows(ignored_set):
         if not user32.IsWindowVisible(hwnd):
             return True
             
+        class_buf = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(hwnd, class_buf, 256)
+        class_name = class_buf.value
+        
         # Get styles
         ex_style = user32.GetWindowLongW(hwnd, -20) # GWL_EXSTYLE
         
@@ -927,10 +931,6 @@ def capture_windows(ignored_set):
         title_buf = ctypes.create_unicode_buffer(length + 1)
         user32.GetWindowTextW(hwnd, title_buf, length + 1)
         title = title_buf.value
-        
-        class_buf = ctypes.create_unicode_buffer(256)
-        user32.GetClassNameW(hwnd, class_buf, 256)
-        class_name = class_buf.value
         
         if class_name in ["Shell_TrayWnd", "Progman", "Windows.UI.Core.CoreWindow", "WorkerW", "MiniMapViewClass", "XamlExplorerHostIslandWindow"]:
             return True
