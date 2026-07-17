@@ -57,7 +57,6 @@ export const Snapshots: React.FC = () => {
           <div className="item-list">
             {snapshots.map((s) => {
               const appCount = s.data?.windows?.length || 0;
-              const tabCount = s.data?.browser_tabs?.length || 0;
               const isExpanded = expandedId === s.id;
               
               return (
@@ -71,7 +70,7 @@ export const Snapshots: React.FC = () => {
                         )}
                       </div>
                       <div className="list-item-desc">
-                        Captured: {s.timestamp} • {appCount} Apps • {tabCount} Browser Tabs
+                        Captured: {s.timestamp} • {appCount} Apps
                       </div>
                     </div>
                     
@@ -102,29 +101,6 @@ export const Snapshots: React.FC = () => {
                               <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '8px 12px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
                                 <span style={{ fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }} title={win.title}>{win.title}</span>
                                 <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '0.75rem' }}>{win.exe_path.split('\\').pop()}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Browser Tabs list */}
-                      <div>
-                        <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Browser Tabs ({tabCount})</h4>
-                        {tabCount === 0 ? (
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No browser tabs captured.</p>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
-                            {s.data.browser_tabs.map((tab, idx) => (
-                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '8px 12px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
-                                <span style={{ fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '350px' }} title={tab.title}>{tab.title}</span>
-                                <span style={{ 
-                                  color: 'var(--accent-color)', 
-                                  fontWeight: 700,
-                                  fontSize: '0.75rem',
-                                  letterSpacing: '0.5px',
-                                  textTransform: 'uppercase'
-                                }}>{tab.browser}</span>
                               </div>
                             ))}
                           </div>

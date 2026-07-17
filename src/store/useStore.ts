@@ -77,6 +77,8 @@ interface AppStore {
   renameWorkspace: (id: number, name: string) => Promise<void>;
   favoriteWorkspace: (id: number, favorite: boolean) => Promise<void>;
   duplicateWorkspace: (id: number) => Promise<void>;
+  fetchWorkspaceDetails: (id: number) => Promise<any>;
+  updateWorkspaceDetails: (id: number, windows: any[]) => Promise<boolean>;
   
   fetchSnapshots: () => Promise<void>;
   captureSnapshot: (name?: string) => Promise<void>;
@@ -240,6 +242,41 @@ export const useStore = create<AppStore>((set, get) => ({
       console.error(e);
     }
   },
+
+  fetchWorkspaceDetails: async (id) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/workspaces?id=${id}`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.error('Error fetching workspace details:', e);
+    }
+    return null;
+  },
+
+  updateWorkspaceDetails: async (id, windows) => {
+    set({ isLoading: true });
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/workspaces/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, windows })
+      });
+      if (res.ok) {
+        get().showToast('Workspace Updated', 'Workspace details saved successfully.');
+        await get().fetchWorkspaces();
+        return true;
+      }
+    } catch (e) {
+      console.error('Error updating workspace details:', e);
+      get().showToast('Error', 'Failed to update workspace details.');
+    } finally {
+      set({ isLoading: false });
+    }
+    return false;
+  },
+
 
   fetchSnapshots: async () => {
     try {

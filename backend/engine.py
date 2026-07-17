@@ -1883,15 +1883,35 @@ def handle_http_request(client_sock, client_addr):
             
         elif path_clean == "/api/workspaces" and method == "GET":
             db = load_db()
-            workspaces = []
-            sorted_workspaces = sorted(db["workspaces"], key=lambda w: (-w.get("favorite", 0), w.get("name", "").lower()))
-            for w in sorted_workspaces:
-                w_copy = dict(w)
-                w_copy["app_count"] = sum(1 for win in db["workspace_windows"] if win["workspace_id"] == w["id"])
-                w_copy["tab_count"] = sum(1 for t in db["workspace_tabs"] if t["workspace_id"] == w["id"])
-                workspaces.append(w_copy)
-            response_data = workspaces
-            status_code = "200 OK"
+            w_id_str = query_params.get("id")
+            if w_id_str:
+                try:
+                    w_id = int(w_id_str)
+                    workspace = None
+                    for w in db["workspaces"]:
+                        if w["id"] == w_id:
+                            workspace = dict(w)
+                            break
+                    if workspace:
+                        workspace["windows"] = [win for win in db["workspace_windows"] if win["workspace_id"] == w_id]
+                        response_data = workspace
+                        status_code = "200 OK"
+                    else:
+                        response_data = {"error": "Workspace not found"}
+                        status_code = "404 Not Found"
+                except Exception as e:
+                    response_data = {"error": f"Invalid ID: {str(e)}"}
+                    status_code = "400 Bad Request"
+            else:
+                workspaces = []
+                sorted_workspaces = sorted(db["workspaces"], key=lambda w: (-w.get("favorite", 0), w.get("name", "").lower()))
+                for w in sorted_workspaces:
+                    w_copy = dict(w)
+                    w_copy["app_count"] = sum(1 for win in db["workspace_windows"] if win["workspace_id"] == w["id"])
+                    w_copy["tab_count"] = sum(1 for t in db["workspace_tabs"] if t["workspace_id"] == w["id"])
+                    workspaces.append(w_copy)
+                response_data = workspaces
+                status_code = "200 OK"
             
         elif path_clean == "/api/workspaces" and method == "POST":
             req_data = json.loads(body)
@@ -2048,6 +2068,44 @@ def handle_http_request(client_sock, client_addr):
                 response_data = {"status": "success", "new_id": new_id, "new_name": new_name}
                 status_code = "200 OK"
             
+        elif path_clean == "/api/workspaces/update" and method == "POST":
+            req_data = json.loads(body)
+            w_id = int(req_data.get("id"))
+            updated_windows = req_data.get("windows")
+            
+            db = load_db()
+            # Verify workspace exists
+            exists = any(w["id"] == w_id for w in db["workspaces"])
+            if exists:
+                # Remove old windows for this workspace
+                db["workspace_windows"] = [win for win in db["workspace_windows"] if win["workspace_id"] != w_id]
+                # Insert updated windows
+                for w in updated_windows:
+                    max_win_id = max([win["id"] for win in db["workspace_windows"]] + [0])
+                    db["workspace_windows"].append({
+                        "id": max_win_id + 1,
+                        "workspace_id": w_id,
+                        "title": w.get("title", ""),
+                        "class_name": w.get("class_name", ""),
+                        "exe_path": w.get("exe_path", ""),
+                        "cmd_line": w.get("cmd_line", ""),
+                        "left": int(w.get("left", 0)),
+                        "top": int(w.get("top", 0)),
+                        "right": int(w.get("right", 0)),
+                        "bottom": int(w.get("bottom", 0)),
+                        "show_cmd": int(w.get("show_cmd", 1)),
+                        "monitor_device": w.get("monitor_device", ""),
+                        "monitor_rect": w.get("monitor_rect", {}),
+                        "virtual_desktop_id": w.get("virtual_desktop_id", ""),
+                        "virtual_desktop_name": w.get("virtual_desktop_name", "")
+                    })
+                save_db(db)
+                response_data = {"status": "success"}
+                status_code = "200 OK"
+            else:
+                response_data = {"error": "Workspace not found"}
+                status_code = "404 Not Found"
+
         elif path_clean == "/api/workspaces/restore" and method == "POST":
             req_data = json.loads(body)
             w_id = int(req_data.get("id"))

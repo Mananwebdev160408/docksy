@@ -12,7 +12,6 @@ export const Dashboard: React.FC = () => {
 
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [monitors, setMonitors] = useState<any[]>([]);
-  const [extensionStatus, setExtensionStatus] = useState<'connected' | 'disconnected'>('disconnected');
   const [restoreResults, setRestoreResults] = useState<any[] | null>(null);
 
   useEffect(() => {
@@ -29,11 +28,6 @@ export const Dashboard: React.FC = () => {
       const res = await fetch('http://127.0.0.1:19082/api/status');
       if (res.ok) {
         const data = await res.json();
-        if (data.browsers_connected && data.browsers_connected.length > 0) {
-          setExtensionStatus('connected');
-        } else {
-          setExtensionStatus('disconnected');
-        }
         if (data.monitors) {
           setMonitors(data.monitors);
         }
@@ -75,7 +69,7 @@ export const Dashboard: React.FC = () => {
             Quick Save Workspace
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            Captures all open window coordinates, paths, explorer instances, and browser tabs.
+            Captures all open window coordinates, paths, and explorer instances.
           </p>
           <form onSubmit={handleSave} style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
             <input
@@ -105,20 +99,20 @@ export const Dashboard: React.FC = () => {
               <span 
                 style={{ 
                   fontWeight: 700, 
-                  color: extensionStatus === 'connected' ? 'var(--success-color)' : 'var(--danger-color)',
-                  backgroundColor: extensionStatus === 'connected' ? 'var(--success-bg)' : 'var(--danger-bg)',
-                  border: `1px solid ${extensionStatus === 'connected' ? 'var(--success-color)' : 'var(--danger-color)'}`,
+                  color: 'var(--text-secondary)',
+                  backgroundColor: 'var(--bg-hover)',
+                  border: '1px solid var(--border-color)',
                   padding: '4px 12px',
                   borderRadius: '16px',
                   fontSize: '0.75rem',
                   letterSpacing: '0.5px'
                 }}
               >
-                {extensionStatus === 'connected' ? 'ACTIVE' : 'INACTIVE'}
+                COMING SOON
               </span>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginTop: '-6px' }}>
-              To capture browser tabs, install the Docksy extension in Chrome or Edge.
+              Browser tab capture is coming soon! (Awaiting Web Store publishing).
             </p>
             {monitors.length > 0 && (
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '4px' }}>
@@ -177,7 +171,7 @@ export const Dashboard: React.FC = () => {
                 <div>
                   <div className="list-item-title">{w.name}</div>
                   <div className="list-item-desc">
-                    Saved on {w.created_at} • {w.app_count || 0} Apps • {w.tab_count || 0} Browser Tabs
+                    Saved on {w.created_at} • {w.app_count || 0} Apps
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
